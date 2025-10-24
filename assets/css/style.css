@@ -42,10 +42,22 @@ main {
 .--header, .--footer {
 	width: 100vw;
 	padding-inline: .5rem;
+	display: flex;
+	justify-content: space-between;
 }
 
 .--header {
 	background-color: var(--black);
+}
+
+.--header__menu {
+	display: flex;
+	gap: .5rem;
+	margin-block: .2rem;
+}
+
+.--header__dropdown {
+	background-color: var(--red);
 }
 
 .--footer {
