@@ -57,11 +57,37 @@ main {
 }
 
 .--header__dropdown {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	width: 100px;
+}
+
+.--apps-menu__link--container {
+	border-radius: .5rem;
+	height: 100%;
+	overflow: hidden;
+}
+
+.--apps-menu__link,
+.--apps-menu__link--container {
 	background-color: var(--red);
+	padding: .1rem .2rem;
+	position: absolute;
+	top: 0;
+	width: 100%;
+	transition: top .2s linear, height .2s linear;
+	color: var(--yellow);
+	font-size: .8rem;
+	font-weight: 700;
 }
 
 .--footer {
 	background-color: var(--yellow);
 	color: var(--black);
 	font-size: .7rem;
+}
+
+.await * {
+	display: none !important;
 }

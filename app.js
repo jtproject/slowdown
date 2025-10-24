@@ -7,33 +7,49 @@ class Dropdown {
 	constructor(element) {
 		if (!element || !element instanceof(HTMLElement)) throw TypeError(`Expected HTML Element, but got ${ typeof(element) }.`)
 		this.element = element
+		this.container = element.children[0]
 		this.options = []
 		this.captureOptions()
-		console.log(this.options)
 		this.status = 'up'
-		this.rowHeight = 16
+		this.rowHeight = 24
 		this.colWidth = 100
-		this.element.onclick = this.toggleStatus
+		this.element.onclick = (e) => this.toggleStatus(e)
 		this.showMenu()		
 	}
+
+	getOptions() {
+		return this.options
+	}
 	
-	toggleStatus() {
-		console.log('click')
+	toggleStatus(e) {
 		if (this.status === 'up') {
+			e.preventDefault()
+			let height = 0
 			this.options.forEach((option, i) => {
-				option.top = this.rowHeight * i + 'px'
+				option.style.top = this.getCellTopPosition(i)
+				height = (i + 1) * this.rowHeight
 			})
+			this.container.style.height = height + 'px'
 			this.status = 'down'
 		}
 		else if (this.status === 'down') {
+			e.preventDefault()
+			window.history.pushState({}, '', e.target.href)
+			this.options.forEach((option) => {
+				option.style.top = 0
+			})
+			this.container.style.height = '100%'
 			this.status = 'up'
 		}	
 	}
 
+	getCellTopPosition(value) {
+		return this.rowHeight * value + 'px'
+	}
+
 	captureOptions() {
-		console.log(this.element.children)
-		Array.from(this.element.children).forEach((child) => {
-			console.log(child)
+		Array.from(this.container.children).forEach((child) => {
+			console.log(child)	
 			this.options.push(child)
 		})
 	}
@@ -44,11 +60,10 @@ class Dropdown {
 
 }
 
-const appsMenu = new Dropdown(document.querySelector('#apps-menu'))
 
 const main = () => {
-
-	console.log(appsMenu.element.children)
+	new Dropdown(document.querySelector('#apps-menu'))
+	setRoot('hi')
 }
 
 document.addEventListener('DOMContentLoaded', main)
