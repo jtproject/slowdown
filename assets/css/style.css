@@ -48,6 +48,8 @@ main {
 
 .--header {
 	background-color: var(--black);
+	align-items: center;
+	position: sticky;
 }
 
 .--header__menu {
@@ -90,4 +92,8 @@ main {
 
 .await * {
 	display: none !important;
+}
+
+.on-top {
+	z-index: 100;
 }
