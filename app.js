@@ -8,17 +8,23 @@ class App {
 		this.appsMenu = new Dropdown(document.querySelector('#apps-menu'))
 		this.appsMenu.app = this
 		this.loader = getRoot().cloneNode(true).innerHTML
+		this.setLoading()
 	}
 
 	setLoading() {
 		setRoot(this.loader)
 	}
 
+	async loadPage(url) {
+		const html = await fetch(url).then(res => res.text())
+  	setRoot(html)
+	}
+
 }
 
 const main = () => {
-	new App('app')
-	setRoot('hi')
+	const app = new App('app')
+	app.loadPage('/pages/dashboard.html')
 }
 
 document.addEventListener('DOMContentLoaded', main)

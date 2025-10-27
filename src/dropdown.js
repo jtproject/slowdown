@@ -40,7 +40,12 @@ export default class Dropdown {
 			})
 			this.container.style.height = '100%'
 			this.status = 'up'
+			this.app.loadPage(this.pagePathUrl(e.target.href))
 		}	
+	}
+
+	pagePathUrl(href) {
+		return '/pages' + new URL(href).pathname + '.html'
 	}
 
 	resetOptionStack(target) {
@@ -56,7 +61,6 @@ export default class Dropdown {
 
 	captureOptions() {
 		Array.from(this.container.children).forEach((child) => {
-			console.log(child)	
 			this.options.push(child)
 		})
 	}
