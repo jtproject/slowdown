@@ -31,7 +31,7 @@ main {
 #loading {
 	animation: spin 3s linear infinite;
 	display: inline-block;
-	width: 60px;;
+	width: 60px;
 }
 
 @keyframes spin {

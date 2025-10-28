@@ -1,0 +1,12 @@
+{
+  "name": "small-db",
+  "version": "0.0.0",
+  "description": "A small db and server combo. Does is do much? We shall see.",
+  "main": "main.js",
+	"type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "pbjason",
+  "license": "ISC"
+}

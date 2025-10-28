@@ -1,4 +1,5 @@
 import { unHideElement } from "./tools.js"
+import navbar from "../config/navbar.js"
 
 export default class Dropdown {
 
@@ -6,7 +7,6 @@ export default class Dropdown {
 		if (!element || !element instanceof(HTMLElement)) throw TypeError(`Expected HTML Element, but got ${ typeof(element) }.`)
 		this.element = element
 		this.container = element.children[0]
-		this.options = []
 		this.captureOptions()
 		this.status = 'up'
 		this.rowHeight = 24
@@ -47,7 +47,7 @@ export default class Dropdown {
 	pagePathUrl(href) {
 		return '/pages' + new URL(href).pathname + '.html'
 	}
-
+	
 	resetOptionStack(target) {
 		this.options.forEach((option) => {
 			option.classList.remove('on-top')
@@ -60,9 +60,18 @@ export default class Dropdown {
 	}
 
 	captureOptions() {
-		Array.from(this.container.children).forEach((child) => {
-			this.options.push(child)
+		this.options = []
+		navbar.forEach((option, index) => {
+			const element = document.createElement('a')
+			element.href = option.href
+			element.innerText = option.label
+			element.classList.add('--apps-menu__link')
+			if (index === 0) element.classList.add('on-top')
+			this.container.appendChild(element)
+			this.options.push(element)
 		})
+		// Array.from(this.container.children).forEach((child) => {
+		// })
 	}
 
 	showMenu() {
