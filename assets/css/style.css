@@ -1,7 +1,7 @@
 :root {
-	--blue: #022569;
-	--red: #DA291C;
-	--yellow: #FFCD00;
+	--blue: #011c50;
+	--red: #d1271a;
+	--green: #0fff37;
 	--white: #ddeeff;
 	--black: #161616;
 }
@@ -62,7 +62,7 @@ main {
 	display: flex;
 	flex-direction: column;
 	position: relative;
-	width: 100px;
+	width: 150px;
 }
 
 .--apps-menu__link--container {
@@ -79,13 +79,13 @@ main {
 	top: 0;
 	width: 100%;
 	transition: top .2s linear, height .2s linear;
-	color: var(--yellow);
+	color: var(--green);
 	font-size: .8rem;
 	font-weight: 700;
 }
 
 .--footer {
-	background-color: var(--yellow);
+	background-color: var(--green);
 	color: var(--black);
 	font-size: .7rem;
 }
