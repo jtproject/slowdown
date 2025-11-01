@@ -17,7 +17,6 @@ const server = http.createServer((req, res) => {
 			{ Location: `/?path=${ req.url }` }
 		)
 	}
-	res.end()
 })
 
 server.listen(8000, () => {

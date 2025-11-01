@@ -67,5 +67,6 @@ export class ApiRequest extends ServerRequest {
 export class HttpRequest extends ServerRequest {
 	constructor(req, res) {
 		super(req, res)
+		this.res.end()
 	}
 }
