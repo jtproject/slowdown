@@ -1,25 +1,14 @@
 import http from 'http'
 import SmallDb from './db.js'
+import { ApiRequest } from './req.js'
 
-const API_ACTIONS = [
-	'create',
-	'read',
-	'update',
-	'delete'
-]
 
-const API_ACTION_GROUPS = [
-	'one',
-	'many',
-	'all'
-]
 
 const db = new SmallDb()
 
 const server = http.createServer((req, res) => {
 	if (req.url.startsWith('/api/')) {
-		const url = req.url.slice(4)
-		
+		new ApiRequest(req, res)	
 	}
 	else if (req.url !== '/' 
 		&& !req.url.startsWith('/?')) {
