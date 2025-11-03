@@ -91,7 +91,7 @@ class SmallDb {
 
 	}
 
-	read(model, query = {}) {
+	read(model, filter, query = {}) {
 		return this.models[this.activeDb][model].data
 	}
 }
