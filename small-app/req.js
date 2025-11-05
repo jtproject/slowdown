@@ -1,14 +1,35 @@
+import { readFile } from 'fs/promises'
+import { join, resolve, extname, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// Get current directory path (ES Module equivalent of __dirname)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// MIME types for common web files
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml'
+}
+
 const API_ACTIONS = [
-	'create',
-	'read',
-	'update',
-	'delete'
+  'create',
+  'read',
+  'update',
+  'delete'
 ]
 
 const API_ACTION_GROUPS = [
-	'one',
-	'many',
-	'all'
+  'one',
+  'many',
+  'all'
 ]
 
 // Base request wrapper that holds the http `req` and `res` objects
@@ -18,9 +39,9 @@ class ServerRequest {
 		this.req = req
 		this.res = res
 		this.db = db || null
-		// default status and body
 		this.statusCode = 200
 		this.data = null
+		this.error = null
 	}
 
 	// Convenience: set route string parsed from URL
@@ -38,19 +59,37 @@ class ServerRequest {
 		this.statusCode = code
 	}
 
-	// Redirect helper: sets 302 and location header via response body
+	// Redirect helper: sets 302 and location header
 	redirect (location) {
 		this.setStatusCode(302)
-		// store redirect location as object so end() can format headers/body
-		this.setData({ Location: location })
+		this.res.writeHead(
+			this.statusCode, 
+			{ Location: location }
+		)
+		this.res.end()
 	}
 
-	// Send JSON response. Ensures proper header and stringified payload
-	end (overrideData = undefined) {
-		const payload = typeof overrideData !== 'undefined' ? overrideData : this.data
-		const body = typeof payload === 'string' ? payload : JSON.stringify(payload || {})
-		// set content-type and status then send
-		this.res.writeHead(this.statusCode, { 'Content-Type': 'application/json' })
+	// Base end() function used by all request types
+	end (options = {}) {
+		const { 
+			contentType = 'application/json',
+			headers = {},
+			override = undefined 
+		} = options
+
+		// Prepare response headers
+		const responseHeaders = {
+			'Content-Type': contentType,
+			...headers
+		}
+
+		// Prepare body based on content type and data
+		let body = override || this.data
+		if (contentType === 'application/json' && typeof body !== 'string') {
+			body = JSON.stringify(body || {})
+		}
+
+		this.res.writeHead(this.statusCode, responseHeaders)
 		this.res.end(body)
 	}
 }
@@ -63,12 +102,19 @@ export class ApiRequest extends ServerRequest {
 		this.handle()
 	}
 
+	// Send JSON response using parent end() with JSON content type
+	end (overrideData = undefined) {
+		return super.end({
+			contentType: 'application/json',
+			override: overrideData
+		})
+	}
+
 	// Main flow: parse route, validate and dispatch, then respond
 	async handle () {
 		this.parseRoute()
 		const ok = this.splitRoute()
-		if (!ok) return this.set404()
-		// dispatch to controller and capture result (supports promises)
+		if (!ok) return this.send404()
 		try {
 			const result = await this.useRouteController(this.routeParts)
 			this.setData({ ok: true, data: result })
@@ -95,13 +141,12 @@ export class ApiRequest extends ServerRequest {
 	}
 
 	// call the controller on the db object: db[action](id, group)
-	// supports synchronous or promise-returning controllers
 	useRouteController (parts) {
 		const [ id, action, group ] = parts
 		if (!this.db) throw new Error('No db configured')
 		const controller = this.db[action]
 		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
-		return controller.call(this.db, id, group)
+		return controller.call(this.db, id, group, this.data || {})
 	}
 
 	// validate route shape and allowed actions/groups
@@ -115,34 +160,82 @@ export class ApiRequest extends ServerRequest {
 	}
 
 	// produce a 404 JSON response
-	set404 () {
+	send404 () {
 		this.setStatusCode(404)
 		this.setData({ ok: false, error: `Route Not Found: /${this.route || ''}` })
 		return this.end()
 	}
 }
 
-// Generic HTTP request handling (non-API)
-export class HttpRequest extends ServerRequest {
-	constructor (req, res, db) {
-		super(req, res, db)
-		// perform any immediate routing/redirects
-		this.handle()
-	}
+// HTML and static file handling
+export class HtmlRequest extends ServerRequest {
+  constructor (req, res, db) {
+    super(req, res, db)
+    this.staticDir = resolve(__dirname, '..')
+    this.handle()
+  }
 
-	handle () {
-		// redirect non-root requests to the client-side router
-		const url = this.req.url || ''
-		if (url !== '/' && !url.startsWith('/?')) {
-			this.setStatusCode(302)
-			// send location in headers via end()
-			this.res.writeHead(302, { Location: `/?path=${url}` })
-			this.res.end()
-			return
-		}
-		// for root or index requests, respond with a small json confirmation
-		this.setStatusCode(200)
-		this.setData({ ok: true, path: url })
-		return this.end()
-	}
+  handle () {
+    const url = this.req.url || '/'
+
+    // Handle root path - serve index.html
+    if (url === '/') {
+      this.serveFile('index.html')
+      return
+    }
+
+    // Handle static files (if url starts with /assets, /js, /css etc)
+    if (url.match(/^\/(assets|js|css|img)\//)) {
+      this.serveFile(url.slice(1))
+      return
+    }
+
+    // All other paths redirect to /?path=<url> for client routing
+    if (!url.startsWith('/?')) {
+			this.redirect(`/?path=${url}`)
+      this.res.end()
+      return
+    }
+
+    // Serve index.html for client-side routing (/?path=...)
+    this.serveFile('index.html')
+  }
+
+  async serveFile(filepath) {
+    try {
+      const normalizedPath = join(this.staticDir, filepath)
+      // Security check - ensure file is within staticDir
+      if (!normalizedPath.startsWith(this.staticDir)) {
+        return this.send403()
+      }
+
+      const content = await readFile(normalizedPath)
+      const ext = extname(normalizedPath).toLowerCase()
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+
+      this.res.writeHead(200, { 'Content-Type': contentType })
+      this.res.end(content)
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        this.send404()
+      } else {
+        this.send500(err)
+      }
+    }
+  }
+
+  send403 () {
+    this.res.writeHead(403, { 'Content-Type': 'text/html' })
+    this.res.end('403 Forbidden')
+  }
+
+  send404 () {
+    this.res.writeHead(404, { 'Content-Type': 'text/html' })
+    this.res.end('404 Not Found')
+  }
+
+  send500 (err) {
+    this.res.writeHead(500, { 'Content-Type': 'text/html' })
+    this.res.end('500 Internal Server Error')
+  }
 }

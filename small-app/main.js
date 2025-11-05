@@ -1,6 +1,6 @@
 import http from 'http'
 import SmallDb from './db.js'
-import { ApiRequest, HttpRequest } from './req.js'
+import { ApiRequest, HtmlRequest } from './req.js'
 import dotenv from 'dotenv'
 
 // setup
@@ -15,7 +15,7 @@ const connection = db.connect('fake')
 const server = http.createServer((req, res) => {
 	if (req.url.startsWith('/api/'))
 		return new ApiRequest(req, res, db)	
-	return new HttpRequest(req, res)
+	return new HtmlRequest(req, res)
 })
 
 // start server connection

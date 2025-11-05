@@ -85,14 +85,26 @@ class SmallDb {
 		this.addDir(path.join(this.dir, name))
 	}
 
-
-
-	create(model, data) {
-
+	create(model, group, body = {}) {
+		return { model }
 	}
 
-	read(model, filter, query = {}) {
-		return this.models[this.activeDb][model].data
+	read(model, group, body = {}) {
+		const data = this.getModelFromActiveDb(model).data
+		let filteredData = data
+		Object.entries(body).forEach(param => {
+			filteredData = filteredData.filter(p => p[param] === param)
+		})
+		switch (group) {
+			case 'all': return data
+			case 'many': return filteredData
+			case 'one': return filteredData[0]
+			default: return null
+		}
+	}
+
+	getModelFromActiveDb(model) {
+		return this.models[this.activeDb][model]
 	}
 }
 
