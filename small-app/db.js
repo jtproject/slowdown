@@ -85,8 +85,35 @@ class SmallDb {
 		this.addDir(path.join(this.dir, name))
 	}
 
+	addEntry(model, entry) {
+		// Get the model object from memory
+		const modelObj = this.getModelFromActiveDb(model)
+		if (!modelObj) {
+			this.newModel(model)
+			return this.addEntry(model, entry)
+		}
+
+		// Create new entry with metadata
+		const newEntry = {
+			id: modelObj.index++,
+			...entry,
+			createdAt: new Date().toISOString()
+		}
+
+		// Update in-memory model
+		modelObj.data.push(newEntry)
+		modelObj.count = modelObj.data.length
+
+		// Save to file
+		const filePath = path.join(this.dir, this.activeDb, model + '.db')
+		fs.writeFileSync(filePath, JSON.stringify(modelObj, null, 2))
+
+		return newEntry
+	}
+
 	create(model, group, body = {}) {
-		return { model }
+		const entry = this.addEntry(model, body)
+		return group === 'one' ? entry : this.getModelFromActiveDb(model).data
 	}
 
 	read(model, group, body = {}) {
