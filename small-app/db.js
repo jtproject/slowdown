@@ -3,19 +3,18 @@ import fs from 'fs'
 import path from 'path'
 
 class SmallDb {
+
+
+
 	constructor() {
 		this.dir = path.join(process.cwd(), '.data')
 		this.confirmDir(this.dir)
 		this.populateDbs()
 	}
-	
-	connect(name) {
-		if (this.getDbByName(name) === false) {
-			throw Error('Database does not exist. Connection failed.')
-		}
-		this.activeDb = name
-		this.populateModels(name)
-		return this.models[name]
+
+	confirmDir(dir, parent = null) {
+		if (parent) dir = path.join(parent, dir)
+		if (!fs.existsSync(dir)) this.addDir(dir)
 	}
 
 	populateDbs() {
@@ -28,15 +27,15 @@ class SmallDb {
 			})
 		})
 	}
-
-	getActiveDb() {
-		return this.getDbByName(this.activeDb)
-	}
-
-	getDbByName(name) {
-		const query = this.dbs.filter((n) => n.name === name)
-		if (query.length > 0) return query[0]
-		return false
+	
+	connect(name) {
+		if (this.getDbByName(name) === false) {
+			throw Error('Database does not exist. Connection failed.')
+		}
+		this.activeDb = name
+		this.populateModels(name)
+		console.log(`\x1b[36mLoaded database models >> \x1b[0m${ name }`)
+		return this.models[name]
 	}
 
 	populateModels() {
@@ -62,6 +61,16 @@ class SmallDb {
 		})
 	}
 
+	getActiveDb() {
+		return this.getDbByName(this.activeDb)
+	}
+
+	getDbByName(name) {
+		const query = this.dbs.filter((n) => n.name === name)
+		if (query.length > 0) return query[0]
+		return false
+	}
+
 	newModel(name) {
 		const model = {
 			name,
@@ -72,10 +81,6 @@ class SmallDb {
 		fs.writeFileSync(path.join(this.dir, this.activeDb, name + '.db'), JSON.stringify(model))
 	}
 
-	confirmDir(dir, parent = null) {
-		if (parent) dir = path.join(parent, dir)
-		if (!fs.existsSync(dir)) this.addDir(dir)
-	}
 
 	addDir(pathname) {
 		fs.mkdirSync(pathname, { recursive: true })
@@ -87,7 +92,7 @@ class SmallDb {
 
 	addEntry(model, entry) {
 		// Get the model object from memory
-		const modelObj = this.getModelFromActiveDb(model)
+		const modelObj = this.getModelFromActiveDbByName(model)
 		if (!modelObj) {
 			this.newModel(model)
 			return this.addEntry(model, entry)
@@ -113,11 +118,11 @@ class SmallDb {
 
 	create(model, group, body = {}) {
 		const entry = this.addEntry(model, body)
-		return group === 'one' ? entry : this.getModelFromActiveDb(model).data
+		return group === 'one' ? entry : this.getModelFromActiveDbByName(model).data
 	}
 
 	read(model, group, body = {}) {
-		const data = this.getModelFromActiveDb(model).data
+		const data = this.getModelFromActiveDbByName(model).data
 		let filteredData = data
 		Object.entries(body).forEach(param => {
 			filteredData = filteredData.filter(p => p[param] === param)
@@ -130,8 +135,12 @@ class SmallDb {
 		}
 	}
 
-	getModelFromActiveDb(model) {
-		return this.models[this.activeDb][model]
+	getModelsFromActiveDb() {
+		return this.models[this.activeDb]
+	}
+
+	getModelFromActiveDbByName(model) {
+		return this.getModelsFromActiveDb[model]
 	}
 }
 
