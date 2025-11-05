@@ -1,10 +1,9 @@
 // Minimal file-based JSON DB for Node.js
 import fs from 'fs'
 import path from 'path'
+import { dbLoadedMessage } from './message.js'
 
 class SmallDb {
-
-
 
 	constructor() {
 		this.dir = path.join(process.cwd(), '.data')
@@ -34,7 +33,7 @@ class SmallDb {
 		}
 		this.activeDb = name
 		this.populateModels(name)
-		console.log(`\x1b[36mLoaded database models >> \x1b[0m${ name }`)
+		dbLoadedMessage(name)
 		return this.models[name]
 	}
 
