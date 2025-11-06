@@ -1,7 +1,7 @@
 // Minimal file-based JSON DB for Node.js
 import fs from 'fs'
 import path from 'path'
-import { dbLoadedMessage } from './message.js'
+import { dbLoadedMessage } from './messages.js'
 
 class SmallDb {
 
@@ -74,9 +74,7 @@ class SmallDb {
 			index: 0,
 			data: []
 		}
-		// ensure models container exists for activeDb
-		if (!this.models) this.models = {}
-		if (!this.models[this.activeDb]) this.models[this.activeDb] = {}
+
 		this.models[this.activeDb][name] = model
 		fs.writeFileSync(path.join(this.dir, this.activeDb, name + '.db'), JSON.stringify(model))
 	}
