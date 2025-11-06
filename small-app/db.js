@@ -19,15 +19,15 @@ class Modeler {
 class SmallDb {
 
 	constructor() {
-		this.filer = new Filer()
-		this.modeler = new Modeler()		
+		const dir = path.join(process.cwd(), '.data')
+		this.filer = new Filer(dir)
+		this.modeler = new Modeler(dir)		
 
 
 
 
-		this.dir = path.join(process.cwd(), '.data')
-		this.confirmDir(this.dir)
-		this.populateDbs()
+		// this.confirmDir(dir)
+		// this.populateDbs()
 	}
 
 	confirmDir(dir, parent = null) {
@@ -47,13 +47,13 @@ class SmallDb {
 	}
 	
 	connect(name) {
-		if (this.getDbByName(name) === false) {
-			throw Error('Database does not exist. Connection failed.')
-		}
-		this.activeDb = name
-		this.populateModels(name)
+		// if (this.getDbByName(name) === false) {
+		// 	throw Error('Database does not exist. Connection failed.')
+		// }
+		// this.activeDb = name
+		// this.populateModels(name)
 		dbLoadedMessage(name)
-		return this.models[name]
+		// return this.models[name]
 	}
 
 	populateModels() {
