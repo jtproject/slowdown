@@ -4,8 +4,51 @@ import path from 'path'
 import { dbLoadedMessage } from './messages.js'
 
 class Filer {
-	constructor() {
+	constructor(dir, create = false) {
+		this.setActiveDir(dir, create)
 		console.log('filer')
+	}
+
+	cd(dir, create = false) {
+		if (dir.startsWith('/')) {
+			return this.setActiveDir()
+		}
+		const parts = dir.split('/')
+		parts.forEach(part => {
+			switch (part) {
+				case '..':
+					this._toParentDir()
+					break
+				default:
+					this._toChildDir(part, create)
+			}
+		})
+	}
+
+	_toParentDir() {
+		this.setActiveDir(path.join('..', this.activeDir))
+	}
+
+	_toChildDir(child, create = false) {
+		this.setActiveDir(path.join(this.activeDir, child), create)
+	}
+
+	setActiveDir(dir, create = false) {
+		if (!this.isDir(dir)) {
+			if (create === true) this.newDir(dir)
+			else throw Error(`Path does not exist: ${ dir }`)
+		}
+		this.activeDir = dir
+	}
+
+	isDir(dir) {
+		if (fs.existsSync(dir)) return true
+		return false
+			// this.newDir(dir)
+	}
+
+	newDir(pathname) {
+		fs.mkdirSync(pathname, { recursive: true })
 	}
 }
 
@@ -21,18 +64,10 @@ class SmallDb {
 	constructor() {
 		const dir = path.join(process.cwd(), '.data')
 		this.filer = new Filer(dir)
-		this.modeler = new Modeler(dir)		
-
-
-
+		this.modeler = new Modeler()		
 
 		// this.confirmDir(dir)
 		// this.populateDbs()
-	}
-
-	confirmDir(dir, parent = null) {
-		if (parent) dir = path.join(parent, dir)
-		if (!fs.existsSync(dir)) this.newDir(dir)
 	}
 
 	populateDbs() {
@@ -79,9 +114,6 @@ class SmallDb {
 		})
 	}
 
-	newDir(pathname) {
-		fs.mkdirSync(pathname, { recursive: true })
-	}
 	
 	newDb(name) {
 		this.newDir(path.join(this.dir, name))
