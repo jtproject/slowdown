@@ -13,7 +13,7 @@ class SmallDb {
 
 	confirmDir(dir, parent = null) {
 		if (parent) dir = path.join(parent, dir)
-		if (!fs.existsSync(dir)) this.addDir(dir)
+		if (!fs.existsSync(dir)) this.newDir(dir)
 	}
 
 	populateDbs() {
@@ -60,14 +60,12 @@ class SmallDb {
 		})
 	}
 
-	getActiveDb() {
-		return this.getDbByName(this.activeDb)
+	newDir(pathname) {
+		fs.mkdirSync(pathname, { recursive: true })
 	}
-
-	getDbByName(name) {
-		const query = this.dbs.filter((n) => n.name === name)
-		if (query.length > 0) return query[0]
-		return false
+	
+	newDb(name) {
+		this.newDir(path.join(this.dir, name))
 	}
 
 	newModel(name) {
@@ -76,27 +74,21 @@ class SmallDb {
 			index: 0,
 			data: []
 		}
-		this.getActiveDb()[name] = model
+		// ensure models container exists for activeDb
+		if (!this.models) this.models = {}
+		if (!this.models[this.activeDb]) this.models[this.activeDb] = {}
+		this.models[this.activeDb][name] = model
 		fs.writeFileSync(path.join(this.dir, this.activeDb, name + '.db'), JSON.stringify(model))
 	}
-
-
-	addDir(pathname) {
-		fs.mkdirSync(pathname, { recursive: true })
-	}
-
-	newDb(name) {
-		this.addDir(path.join(this.dir, name))
-	}
-
+	
 	addEntry(model, entry) {
 		// Get the model object from memory
-		const modelObj = this.getModelFromActiveDbByName(model)
+		let modelObj = this.getModelFromActiveDbByName(model)
 		if (!modelObj) {
 			this.newModel(model)
-			return this.addEntry(model, entry)
+			modelObj = this.getModelFromActiveDbByName(model)
 		}
-
+		
 		// Create new entry with metadata
 		const newEntry = {
 			id: modelObj.index++,
@@ -107,39 +99,58 @@ class SmallDb {
 		// Update in-memory model
 		modelObj.data.push(newEntry)
 		modelObj.count = modelObj.data.length
-
+		
 		// Save to file
 		const filePath = path.join(this.dir, this.activeDb, model + '.db')
 		fs.writeFileSync(filePath, JSON.stringify(modelObj, null, 2))
-
+		
 		return newEntry
 	}
-
+	
 	create(model, group, body = {}) {
 		const entry = this.addEntry(model, body)
 		return group === 'one' ? entry : this.getModelFromActiveDbByName(model).data
 	}
 
-	read(model, group, body = {}) {
-		const data = this.getModelFromActiveDbByName(model).data
+	read(model, group, filters = {}) {
+		const modelObj = this.getModelFromActiveDbByName(model)
+		if (!modelObj) return group === 'all' ? [] : null
+		const data = modelObj.data || []
 		let filteredData = data
-		Object.entries(body).forEach(param => {
-			filteredData = filteredData.filter(p => p[param] === param)
-		})
+		if (filters && Object.keys(filters).length > 0) {
+			filteredData = data.filter(item => {
+				return Object.entries(filters).every(([key, value]) => {
+					// loose comparison to allow numbers/strings
+					return item[key] == value
+				})
+			})
+		}
 		switch (group) {
 			case 'all': return data
 			case 'many': return filteredData
-			case 'one': return filteredData[0]
+			case 'one': return filteredData[0] || null
 			default: return null
 		}
 	}
 
+	getActiveDb() {
+		return this.getDbByName(this.activeDb)
+	}
+	
+	getDbByName(name) {
+		const query = this.dbs.filter((n) => n.name === name)
+		if (query.length > 0) return query[0]
+		return false
+	}
+
 	getModelsFromActiveDb() {
-		return this.models[this.activeDb]
+		if (!this.models) this.models = {}
+		return this.models[this.activeDb] || {}
 	}
 
 	getModelFromActiveDbByName(model) {
-		return this.getModelsFromActiveDb[model]
+		const models = this.getModelsFromActiveDb()
+		return models[model] || {}
 	}
 }
 
