@@ -3,9 +3,28 @@ import fs from 'fs'
 import path from 'path'
 import { dbLoadedMessage } from './messages.js'
 
+class Filer {
+	constructor() {
+		console.log('filer')
+	}
+}
+
+class Modeler {
+	constructor() {
+		console.log('modeler')
+	}
+
+}
+
 class SmallDb {
 
 	constructor() {
+		this.filer = new Filer()
+		this.modeler = new Modeler()		
+
+
+
+
 		this.dir = path.join(process.cwd(), '.data')
 		this.confirmDir(this.dir)
 		this.populateDbs()
