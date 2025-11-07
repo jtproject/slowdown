@@ -6,14 +6,19 @@ import { dbLoadedMessage } from './messages.js'
 class Filer {
 
 	constructor(dir, create = false) {
+		this.ext = 'jsys'
 		this.setActiveDir(dir, create)
-		this.cd('fake')
+		this._cd('fake')
 		console.log(this.activeFile)
 		this.setActiveFile('sample.db')
 		console.log(this.activeFile)
 	}
 
-	cd(dir, create = false) {
+	update() {
+		
+	}
+
+	_cd(dir, create = false) {
 		if (dir.startsWith('/')) {
 			return this.setActiveDir(dir)
 		}
@@ -39,11 +44,11 @@ class Filer {
 		this.setActiveDir(path.join(this.activeDir, child), create)
 	}
 
-	_checkIfExists(value, type) {
+	_checkIfExists(value, type, create = false) {
 		const label = type.slice(0, 1).toUpperCase() + type.slice(1)
 		const methods = {
 			dir: [this._isDir, this._newDir],
-			file: [this.isFile, this.newFile]
+			file: [this._isFile, this._newFile]
 		}
 		if (!methods[type][0](value)) {
 			if (create === true) methods[type][0](value)
@@ -57,12 +62,11 @@ class Filer {
 	}
 
 	setActiveFile(fileName, create = false) {
-		let filePath = null
-		if (fileName !== null) {
-			filePath = path.join(this.activeDir, fileName)
-			this._checkIfExists(filePath, 'file', create)
-		}
-		this.activeFile = filePath
+		this.activeFile = fileName === null ? null :this._checkIfExists(
+			path.join(this.activeDir, fileName),
+			'file',
+			create
+		)
 	}
 
 	_isDir(dir) {
@@ -70,12 +74,34 @@ class Filer {
 		return false
 	}
 
+	_isFile(fileName) {
+		return fs.existsSync(this._filePath(fileName))
+	}
+
 	_newDir(pathname) {
 		fs.mkdirSync(pathname, { recursive: true })
 	}
 
+	_newFile(fileName) {
+		const f = fs.openSync(this._filePath(fileName), 'w')
+		fs.writeSync(f, JSON.stringify({
+			name: fileName,
+			index: 0,
+			data: []
+		}, null, 2), 'utf8')
+		fs.closeSync(f)
+	}
+
 	_dirParts(dir) {
 		return dir.split('/')
+	}
+
+	_filePath(fileName) {
+		return path.join(this.activeDir, this._fileName(fileName))
+	}
+
+	_fileName(fileName) {
+		return [fileName, this.ext].join('.')
 	}
 }
 
@@ -90,7 +116,7 @@ class SmallDb {
 
 	constructor() {
 		const dir = path.join(process.cwd(), '.data')
-		this.filer = new Filer(dir)
+		this.filer = new Filer(dir, true)
 		this.modeler = new Modeler()		
 
 		// this.populateDbs()
