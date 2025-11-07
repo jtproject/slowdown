@@ -4,18 +4,23 @@ import path from 'path'
 import { dbLoadedMessage } from './messages.js'
 
 class Filer {
+
 	constructor(dir, create = false) {
 		this.setActiveDir(dir, create)
-		console.log('filer')
+		this.cd('fake')
+		console.log(this.activeFile)
+		this.setActiveFile('sample.db')
+		console.log(this.activeFile)
 	}
 
 	cd(dir, create = false) {
 		if (dir.startsWith('/')) {
-			return this.setActiveDir()
+			return this.setActiveDir(dir)
 		}
-		const parts = dir.split('/')
-		parts.forEach(part => {
+		this._dirParts(dir).forEach(part => {
 			switch (part) {
+				case '':
+					break
 				case '..':
 					this._toParentDir()
 					break
@@ -30,25 +35,47 @@ class Filer {
 	}
 
 	_toChildDir(child, create = false) {
+		console.log(child)
 		this.setActiveDir(path.join(this.activeDir, child), create)
 	}
 
-	setActiveDir(dir, create = false) {
-		if (!this.isDir(dir)) {
-			if (create === true) this.newDir(dir)
-			else throw Error(`Path does not exist: ${ dir }`)
+	_checkIfExists(value, type) {
+		const label = type.slice(0, 1).toUpperCase() + type.slice(1)
+		const methods = {
+			dir: [this._isDir, this._newDir],
+			file: [this.isFile, this.newFile]
 		}
+		if (!methods[type][0](value)) {
+			if (create === true) methods[type][0](value)
+			else throw Error(`${ label } does not exist: ${ value }`)
+		}
+	}
+
+	setActiveDir(dir, create = false) {
+		this._checkIfExists(dir, 'dir', create)
 		this.activeDir = dir
 	}
 
-	isDir(dir) {
-		if (fs.existsSync(dir)) return true
-		return false
-			// this.newDir(dir)
+	setActiveFile(fileName, create = false) {
+		let filePath = null
+		if (fileName !== null) {
+			filePath = path.join(this.activeDir, fileName)
+			this._checkIfExists(filePath, 'file', create)
+		}
+		this.activeFile = filePath
 	}
 
-	newDir(pathname) {
+	_isDir(dir) {
+		if (fs.existsSync(dir)) return true
+		return false
+	}
+
+	_newDir(pathname) {
 		fs.mkdirSync(pathname, { recursive: true })
+	}
+
+	_dirParts(dir) {
+		return dir.split('/')
 	}
 }
 
@@ -66,13 +93,12 @@ class SmallDb {
 		this.filer = new Filer(dir)
 		this.modeler = new Modeler()		
 
-		// this.confirmDir(dir)
 		// this.populateDbs()
 	}
 
 	populateDbs() {
 		this.dbs = []
-		fs.readdirSync(this.dir).forEach((db) => {
+		fs.readdirSync(this.filer.activeDir).forEach((db) => {
 			this.dbs.push({
 				name: db,
 				models: [],
@@ -116,7 +142,7 @@ class SmallDb {
 
 	
 	newDb(name) {
-		this.newDir(path.join(this.dir, name))
+		this._newDir(path.join(this.dir, name))
 	}
 
 	newModel(name) {
