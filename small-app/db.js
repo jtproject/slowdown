@@ -2,108 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { dbLoadedMessage } from './messages.js'
-
-class Filer {
-
-	constructor(dir, create = false) {
-		this.ext = 'jsys'
-		this.setActiveDir(dir, create)
-		this._cd('fake')
-		console.log(this.activeFile)
-		this.setActiveFile('sample.db')
-		console.log(this.activeFile)
-	}
-
-	update() {
-		
-	}
-
-	_cd(dir, create = false) {
-		if (dir.startsWith('/')) {
-			return this.setActiveDir(dir)
-		}
-		this._dirParts(dir).forEach(part => {
-			switch (part) {
-				case '':
-					break
-				case '..':
-					this._toParentDir()
-					break
-				default:
-					this._toChildDir(part, create)
-			}
-		})
-	}
-
-	_toParentDir() {
-		this.setActiveDir(path.join('..', this.activeDir))
-	}
-
-	_toChildDir(child, create = false) {
-		console.log(child)
-		this.setActiveDir(path.join(this.activeDir, child), create)
-	}
-
-	_checkIfExists(value, type, create = false) {
-		const label = type.slice(0, 1).toUpperCase() + type.slice(1)
-		const methods = {
-			dir: [this._isDir, this._newDir],
-			file: [this._isFile, this._newFile]
-		}
-		if (!methods[type][0](value)) {
-			if (create === true) methods[type][0](value)
-			else throw Error(`${ label } does not exist: ${ value }`)
-		}
-	}
-
-	setActiveDir(dir, create = false) {
-		this._checkIfExists(dir, 'dir', create)
-		this.activeDir = dir
-	}
-
-	setActiveFile(fileName, create = false) {
-		this.activeFile = fileName === null ? null :this._checkIfExists(
-			path.join(this.activeDir, fileName),
-			'file',
-			create
-		)
-	}
-
-	_isDir(dir) {
-		if (fs.existsSync(dir)) return true
-		return false
-	}
-
-	_isFile(fileName) {
-		return fs.existsSync(this._filePath(fileName))
-	}
-
-	_newDir(pathname) {
-		fs.mkdirSync(pathname, { recursive: true })
-	}
-
-	_newFile(fileName) {
-		const f = fs.openSync(this._filePath(fileName), 'w')
-		fs.writeSync(f, JSON.stringify({
-			name: fileName,
-			index: 0,
-			data: []
-		}, null, 2), 'utf8')
-		fs.closeSync(f)
-	}
-
-	_dirParts(dir) {
-		return dir.split('/')
-	}
-
-	_filePath(fileName) {
-		return path.join(this.activeDir, this._fileName(fileName))
-	}
-
-	_fileName(fileName) {
-		return [fileName, this.ext].join('.')
-	}
-}
+import Filer from './filer.js'
 
 class Modeler {
 	constructor() {
@@ -116,7 +15,7 @@ class SmallDb {
 
 	constructor() {
 		const dir = path.join(process.cwd(), '.data')
-		this.filer = new Filer(dir, true)
+		this.filer = new Filer(dir)
 		this.modeler = new Modeler()		
 
 		// this.populateDbs()
@@ -139,7 +38,9 @@ class SmallDb {
 		// }
 		// this.activeDb = name
 		// this.populateModels(name)
+		this.filer.connect(name)
 		dbLoadedMessage(name)
+		console.log(this.filer.get('test'))
 		// return this.models[name]
 	}
 
