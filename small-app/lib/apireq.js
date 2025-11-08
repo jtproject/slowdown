@@ -1,4 +1,4 @@
-import { API_ACTION_GROUPS, API_ACTIONS } from './options.js'
+import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
 import ServerRequest from './req.js'
 
 export default class ApiRequest extends ServerRequest {

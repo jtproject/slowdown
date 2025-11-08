@@ -1,9 +1,9 @@
 import http from 'http'
 import SmallDb from './db.js'
-import ApiRequest from './apireq.js'
-import HtmlRequest from './htmlreq.js'
+import ApiRequest from './lib/apireq.js'
+import HtmlRequest from './lib/htmlreq.js'
 import dotenv from 'dotenv'
-import { connecionMessage, startupMessage } from './messages.js'
+import { connecionMessage, startupMessage } from './config/messages.js'
 
 // setup
 dotenv.config()

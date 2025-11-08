@@ -1,29 +1,43 @@
 // Minimal file-based JSON DB for Node.js
 import fs from 'fs'
 import path from 'path'
-import { dbLoadedMessage } from './messages.js'
-import Filer from './filer.js'
+import { dbLoadedMessage } from './config/messages.js'
+import Filer from './lib/filer.js'
 
 class Modeler {
-	constructor() {
-		console.log('modeler')
+	
+	constructor(dirName) {
+		this.filer = new Filer(dirName)
+		this._populate(dirName)
 	}
-
+	
+	connect(objName) {
+		this.filer.connect(objName, true)
+	}
+	
+	_populate() {
+		this.object = {}
+		this.filer.content.forEach((dirName) => {
+			this.object[dirName] = {
+				name: dirName,
+				models: {}
+			}
+		})
+	}
 }
 
 class SmallDb {
 
 	constructor() {
 		const dir = path.join(process.cwd(), '.data')
-		this.filer = new Filer(dir)
-		this.modeler = new Modeler()		
-
+		this.modeler = new Modeler(dir)		
+		
 		// this.populateDbs()
 	}
 
 	populateDbs() {
-		this.dbs = []
-		fs.readdirSync(this.filer.activeDir).forEach((db) => {
+		const content = this.filer.content
+	content.forEach((db) => {
 			this.dbs.push({
 				name: db,
 				models: [],
@@ -33,15 +47,9 @@ class SmallDb {
 	}
 	
 	connect(name) {
-		// if (this.getDbByName(name) === false) {
-		// 	throw Error('Database does not exist. Connection failed.')
-		// }
-		// this.activeDb = name
-		// this.populateModels(name)
-		this.filer.connect(name)
+		// this.filer.connect(name)
+		this.modeler.connect(name)
 		dbLoadedMessage(name)
-		console.log(this.filer.get('test'))
-		// return this.models[name]
 	}
 
 	populateModels() {

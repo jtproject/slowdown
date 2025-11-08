@@ -1,7 +1,7 @@
 import ServerRequest from './req.js'
 import { dirname, extname, join, resolve } from "path"
 import { fileURLToPath } from "url"
-import { MIME_TYPES } from './options.js'
+import { MIME_TYPES } from '../config/options.js'
 import { readFile } from 'fs/promises'
 
 // Get current directory path (ES Module equivalent of __dirname)
