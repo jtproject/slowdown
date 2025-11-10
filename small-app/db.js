@@ -7,20 +7,30 @@ import Filer from './lib/filer.js'
 class Modeler {
 	
 	constructor(dirName) {
+		this.object = {}
+		this.pointer = null
 		this.filer = new Filer(dirName)
-		this._populate(dirName)
+		// Ensure we have an up-to-date view of available DBs
+		this._populate()
 	}
 	
 	connect(objName) {
 		this.filer.connect(objName, true)
+		if (!this.object[objName]) {
+			this.object[objName] = { name: objName, models: {} }
+		}
+		this.pointer = this.object[objName]
+		this._populate()
+		console.log(this)
 	}
 	
 	_populate() {
-		this.object = {}
-		this.filer.content.forEach((dirName) => {
-			this.object[dirName] = {
-				name: dirName,
-				models: {}
+		const list = this.filer.content || []
+		list.forEach((name) => {
+			if (!this.pointer) {
+				if (!this.object[name]) this.object[name] = { name, models: {} }
+			} else {
+				this.pointer.models[name] = this.filer.get(name)
 			}
 		})
 	}

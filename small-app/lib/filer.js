@@ -11,11 +11,11 @@ export default class Filer {
 
 	// === Constructor and Public Interface ===
 	
-	constructor(dir) {
-		this._topDir = dir
+	constructor(dirName) {
+		this._topDir = dirName
 		this._ext = 'jsys'
 		this.content = []
-		this._setActiveDir(dir, true)
+		this._setActiveDir(dirName, true)
 		this._setActiveFile(null)
 	}
 
@@ -39,12 +39,15 @@ export default class Filer {
 	write(fileName, data) {
 		this._setActiveFile(fileName, true)
 		this._writeFile(data)
+		this._setActiveFile(null)
 	}
 
 	// Read and parse JSON data from a file
 	get(fileName) {
 		this._setActiveFile(fileName, true)
-		return this._readFile(fileName)
+		const data = this._readFile(fileName)
+		this._setActiveFile(null)
+		return data
 	}
 
 	// === Directory Operations ===
@@ -94,8 +97,13 @@ export default class Filer {
 
 	_setActiveFile(fileName, create = false) {
 		if (fileName === null) return this.activeFile = null
-		this._checkIfExists(fileName, 'file', create)
-		this.activeFile = fileName
+		if (typeof fileName !== 'string' || fileName.trim() === '') {
+			generalError('Invalid file name provided')
+		}
+		// Normalize to a base name (store without extension)
+		const baseName = this._normalizeFileName(fileName)
+		this._checkIfExists(baseName, 'file', create)
+		this.activeFile = baseName
 	}
 
 	_isFile(fileName) {
@@ -103,11 +111,21 @@ export default class Filer {
 	}
 
 	_newFile(fileName) {
-		this._writeFile({
-			name: fileName,
+		const baseName = this._normalizeFileName(fileName)
+		const initial = {
+			name: baseName,
 			index: 0,
 			data: []
-		})
+		}
+		const filePath = this._filePath(baseName)
+		fs.writeFileSync(filePath, JSON.stringify(initial, null, 2), 'utf8')
+
+		// Refresh cached listing so the new file appears in `content`
+		try {
+			this.content = this._ls()
+		} catch (e) {
+			// non-fatal: leave existing content if listing fails
+		}
 	}
 
 	_readFile(fileName) {
@@ -116,11 +134,9 @@ export default class Filer {
 	}
 
 	_writeFile(data) {
-		fs.writeFileSync(
-			this._filePath(this.activeFile), 
-			JSON.stringify(data, null, 2), 
-			'utf8'
-		)
+		const target = this.activeFile
+		if (!target) generalError('No active file selected for write')
+		fs.writeFileSync(this._filePath(target), JSON.stringify(data, null, 2), 'utf8')
 	}
 
 	// === Utility Methods ===
@@ -149,7 +165,24 @@ export default class Filer {
 		return path.join(this.activeDir, this._fileName(fileName))
 	}
 
+	/**
+	 * Normalize a file name to its base (without extension).
+	 * If the caller passed a name that already includes the extension,
+	 * strip it so the rest of the class stores base names consistently.
+	 */
+	_normalizeFileName(fileName) {
+		if (typeof fileName !== 'string') return fileName
+		const suffix = '.' + this._ext
+		if (fileName.endsWith(suffix)) return fileName.slice(0, -suffix.length)
+		return fileName
+	}
+
 	_fileName(fileName) {
+		// Accept either a base name or a name that already includes the
+		// extension. Always return a filename with exactly one extension.
+		if (!fileName) return fileName
+		const suffix = '.' + this._ext
+		if (fileName.endsWith(suffix)) return fileName
 		return [fileName, this._ext].join('.')
 	}
 }
