@@ -35,12 +35,14 @@ export default class ApiRequest extends ServerRequest {
 	}
 
 	// call the controller on the db object: db[action](id, group)
-	useRouteController (parts) {
+	async useRouteController (parts) {
 		const [ id, action, group ] = parts
 		if (!this.db) throw new Error('No db configured')
 		const controller = this.db[action]
 		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
-		return controller.call(this.db, id, group, this.data || {})
+		const response = await controller.call(this.db, id, group, this.data || {})
+		if (response.error !== undefined) return this._sendError(response.error.code, response.error.message)
+		return data
 	}
 
 	// validate route shape and allowed actions/groups
@@ -53,10 +55,15 @@ export default class ApiRequest extends ServerRequest {
 		)
 	}
 
+	_sendError(code, message) {
+		this.setData({ ok: false, code, error: message })
+		this.end()
+	}
+
 	// produce a 404 JSON response
 	send404 () {
 		this.setStatusCode(404)
-		this.setData({ ok: false, error: `Route Not Found: /${this.route || ''}` })
+		this.setData({ ok: false, code: 404, error: `Route Not Found: /${this.route || ''}` })
 		return this.end()
 	}
 }

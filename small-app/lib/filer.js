@@ -43,7 +43,7 @@ export default class Filer {
 	}
 
 	// Read and parse JSON data from a file
-	get(fileName) {
+	read(fileName) {
 		this._setActiveFile(fileName, true)
 		const data = this._readFile(fileName)
 		this._setActiveFile(null)
