@@ -1,4 +1,5 @@
 import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
+import RESPONSE_CODES from '../config/status.js'
 import ServerRequest from './req.js'
 
 export default class ApiRequest extends ServerRequest {
@@ -10,27 +11,27 @@ export default class ApiRequest extends ServerRequest {
 	async handle () {
 		this.parseRoute()
 		const ok = this.splitRoute()
-		if (!ok) return this.send404()
+		if (!ok) return this._send404()
 		try {
 			const result = await this.useRouteController(this.routeParts)
-			this.setData({ ok: true, data: result })
-			this.setStatusCode(200)
+			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: result })
+			this._setStatusCode(200)
 		} catch (err) {
-			this.setStatusCode(500)
-			this.setData({ ok: false, error: String(err) })
+			console.log(err)
+			return this._sendError(500, err)
 		}
 		return this.end()
 	}
 
 	parseRoute () {
 		const raw = this.req.url || ''
-		this.setRoute(raw.slice(5))
+		this._setRoute(raw.slice(5))
 	}
 
 	splitRoute () {
 		const parts = (this.route || '').split('/').filter(Boolean)
 		this.routeParts = parts
-		if (!this.isValidRoute(parts)) return false
+		if (!this._isValidRoute(parts)) return false
 		return true
 	}
 
@@ -40,13 +41,13 @@ export default class ApiRequest extends ServerRequest {
 		if (!this.db) throw new Error('No db configured')
 		const controller = this.db[action]
 		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
-		const response = await controller.call(this.db, id, group, this.data || {})
-		if (response.error !== undefined) return this._sendError(response.error.code, response.error.message)
-		return data
+		const response = controller.call(this.db, id, group, {})
+		if (response.error) return this._sendError(response.error.code, response.error.message)
+		return response
 	}
 
 	// validate route shape and allowed actions/groups
-	isValidRoute (arr) {
+	_isValidRoute (arr) {
 		return (
 			arr &&
 			arr.length === 3 &&
@@ -56,14 +57,12 @@ export default class ApiRequest extends ServerRequest {
 	}
 
 	_sendError(code, message) {
-		this.setData({ ok: false, code, error: message })
+		this._setStatusCode(code)
+		this._setData({ ok: false, code, status: RESPONSE_CODES[code], error: message })
 		this.end()
 	}
 
-	// produce a 404 JSON response
-	send404 () {
-		this.setStatusCode(404)
-		this.setData({ ok: false, code: 404, error: `Route Not Found: /${this.route || ''}` })
-		return this.end()
+	_send404 () {
+		this._sendError(404, `Route not found: /${ String(this.route) }`)
 	}
 }

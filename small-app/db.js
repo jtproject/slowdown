@@ -2,6 +2,8 @@
 import path from 'path'
 import { dbLoadedMessage } from './config/messages.js'
 import Filer from './lib/filer.js'
+import { generalErrorJson } from './utils/error.js'
+import { BLANK_DB, BLANK_MODEL } from './config/objects.js'
 
 class Modeler {
 	
@@ -9,22 +11,44 @@ class Modeler {
 		this.object = {}
 		this.pointer = null
 		this.filer = new Filer(dirName)
-		this._populate()
+		this._populateDatabases()
 	}
 	
 	connect(objName) {
 		this.filer.connect(objName, true)
-		if (!this.object[objName]) {
-			this.object[objName] = { name: objName, models: {} }
-		}
 		this.pointer = this.object[objName]
-		this._populate()
+		this._populateModels()
 		console.log(this)
 	}
+
 	
 	set(point, data) {
-		this.pointer.models[point] = data
-		const response = this.filer.write(point, data)
+		if (!this.pointer.models[point]) {
+			this._setPoint(point)
+		}
+		this._insertModelData(point, data)
+		return this._getPoint(point)
+		// const response = this.filer.write(point, data)
+		// return response
+	}
+
+	_setPoint (point) {
+		this.pointer.models[point] = this.filer.read(point)
+	}
+
+	_getPoint (point) {
+		return this.pointer.models[point]
+	}
+	
+	setMany(point, data) {
+		if (!Array.isArray(data)) generalErrorJson(`Data for setMany must be an array. Received ${ typeof(data) } instead.`)
+		const response = []
+		data.forEach((entry) => {
+			console.log(entry)
+			this._insertModelData(point, entry)
+			response.push(entry)
+		})
+		this.filer.write(point, data)
 		return response
 	}
 	
@@ -33,18 +57,28 @@ class Modeler {
 		this.pointer.models[point] = data
 		return data
 	}
-
-	_populate() {
-		const list = this.filer.content || []
-		list.forEach((name) => {
-			if (!this.pointer) {
-				if (!this.object[name]) this.object[name] = { name, models: {} }
-			} 
-			else {
-				const data = this.filer.get(name)
-				this.set(name, data)
-			}
+	
+	_populateDatabases () {
+		this.filer.content.forEach((dbName) => {
+			this._appendDb(dbName)
 		})
+	}
+	
+	_appendDb (dbName) {
+		this.object[dbName] = BLANK_DB(dbName)
+	}
+	
+	_populateModels () {
+		this.filer.content.forEach((modelName) => {
+			const name = modelName.split('.')[0]
+			this.pointer.models[name] = this.get(name)
+			this.pointer.modelCount++
+		})
+	}
+
+	_insertModelData(modelName, data) {
+		this._getPoint(modelName).data.push(data)
+		console.log(this.pointer.models[modelName])
 	}
 }
 
@@ -64,12 +98,12 @@ class SmallDb {
 		return { error: { code, message	}}
 	}
 	
-	create(model, group, data = {}) {
+	create(model, group, data = null) {
 		switch (group) {
 			case 'all':
 				return this._sendError(401, 'Only God can create all.')
 			case 'many':
-				return this.modeler.set(model, data)
+				return this.modeler.setMany(model, [{ test: 'test' }])
 			case 'one':
 				return this.modeler.set(model, data)
 			default:
@@ -77,24 +111,18 @@ class SmallDb {
 		}
 	}
 
-	read(model, group, data = {}) {
-		// const modelObj = this.getModelFromActiveDbByName(model)
-		// if (!modelObj) return group === 'all' ? [] : null
-		// const data = modelObj.data || []
-		// let filteredData = data
-		// if (filters && Object.keys(filters).length > 0) {
-		// 	filteredData = data.filter(item => {
-		// 		return Object.entries(filters).every(([key, value]) => {
-		// 			return item[key] == value
-		// 		})
-		// 	})
-		// }
-		// switch (group) {
-		// 	case 'all': return data
-		// 	case 'many': return filteredData
-		// 	case 'one': return filteredData[0] || null
-		// 	default: return null
-		// }
+	read(model, group, data = null) {
+		let filteredData = this.modeler.get(model).data
+		if (data) {
+			Object.entries(data).forEach(([key, value]) => {
+				filteredData = filteredData.filter(entry => entry[key] === value)
+			})
+			if (filteredData.length === 0 && group !== 'all') {
+				return this._sendError(404, 'No data.')
+			}
+		}
+		if (group === 'one') return filteredData[0]
+		return filteredData
 	}
 
 	update(model, group, data = {}) {

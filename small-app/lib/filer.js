@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { capitalFirstLetterOnly } from '../utils/string.js'
 import { generalError, referenceError } from '../utils/error.js'
+import { BLANK_MODEL } from '../config/objects.js'
 
 /**
  * File-based storage system for managing JSON data files
@@ -37,9 +38,11 @@ export default class Filer {
 
 	// Write data to a JSON file
 	write(fileName, data) {
+		console.log(data)
 		this._setActiveFile(fileName, true)
 		this._writeFile(data)
 		this._setActiveFile(null)
+		return data
 	}
 
 	// Read and parse JSON data from a file
@@ -97,10 +100,6 @@ export default class Filer {
 
 	_setActiveFile(fileName, create = false) {
 		if (fileName === null) return this.activeFile = null
-		if (typeof fileName !== 'string' || fileName.trim() === '') {
-			generalError('Invalid file name provided')
-		}
-		// Normalize to a base name (store without extension)
 		const baseName = this._normalizeFileName(fileName)
 		this._checkIfExists(baseName, 'file', create)
 		this.activeFile = baseName
@@ -112,20 +111,8 @@ export default class Filer {
 
 	_newFile(fileName) {
 		const baseName = this._normalizeFileName(fileName)
-		const initial = {
-			name: baseName,
-			index: 0,
-			data: []
-		}
 		const filePath = this._filePath(baseName)
-		fs.writeFileSync(filePath, JSON.stringify(initial, null, 2), 'utf8')
-
-		// Refresh cached listing so the new file appears in `content`
-		try {
-			this.content = this._ls()
-		} catch (e) {
-			// non-fatal: leave existing content if listing fails
-		}
+		fs.writeFileSync(filePath, JSON.stringify(BLANK_MODEL(baseName), null, 2), 'utf8')
 	}
 
 	_readFile(fileName) {
@@ -165,11 +152,6 @@ export default class Filer {
 		return path.join(this.activeDir, this._fileName(fileName))
 	}
 
-	/**
-	 * Normalize a file name to its base (without extension).
-	 * If the caller passed a name that already includes the extension,
-	 * strip it so the rest of the class stores base names consistently.
-	 */
 	_normalizeFileName(fileName) {
 		if (typeof fileName !== 'string') return fileName
 		const suffix = '.' + this._ext
@@ -178,8 +160,6 @@ export default class Filer {
 	}
 
 	_fileName(fileName) {
-		// Accept either a base name or a name that already includes the
-		// extension. Always return a filename with exactly one extension.
 		if (!fileName) return fileName
 		const suffix = '.' + this._ext
 		if (fileName.endsWith(suffix)) return fileName

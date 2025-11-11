@@ -16,23 +16,23 @@ export default class ServerRequest {
 	}
 
 	// Convenience: set route string parsed from URL
-	setRoute (route) {
+	_setRoute (route) {
 		this.route = route
 	}
 
 	// Convenience: set response body (object or string)
-	setData (data) {
+	_setData (data) {
 		this.data = data
 	}
 	
 	// Convenience: set HTTP status code
-	setStatusCode (code) {
+	_setStatusCode (code) {
 		this.statusCode = code
 	}
 
 	// Redirect helper: sets 302 and location header
 	redirect (location) {
-		this.setStatusCode(302)
+		this._setStatusCode(302)
 		this.headers.Location = location
 		this.end()
 	}

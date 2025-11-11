@@ -6,6 +6,10 @@ export function generalError(message) {
 	throw Error(visibleError(message))
 }
 
+export function generalErrorJson(message) {
+	throw Error(message)
+}
+
 function visibleError(message) {
 	return `\n\n\x1b[34m${ message }\x1b[33m\n\n`
 }
