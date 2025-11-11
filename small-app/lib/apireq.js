@@ -1,8 +1,9 @@
-import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
+import { ALLOWED_METHODS, API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
 import RESPONSE_CODES from '../config/status.js'
 import ServerRequest from './req.js'
 
 export default class ApiRequest extends ServerRequest {
+
 	constructor (req, res, db) {
 		super(req, res, db)
 		this.handle()
@@ -41,9 +42,12 @@ export default class ApiRequest extends ServerRequest {
 		if (!this.db) throw new Error('No db configured')
 		const controller = this.db[action]
 		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
-		const response = controller.call(this.db, id, group, {})
-		if (response.error) return this._sendError(response.error.code, response.error.message)
-		return response
+		if (ALLOWED_METHODS[action].includes(this.req.method)) {
+			const response = controller.call(this.db, id, group, {})
+			if (response.error) return this._sendError(response.error.code, response.error.message)
+			return response
+		}
+		return this._sendError(405, `Only ${ ALLOWED_METHODS[action].join(' or ') } method(s) are allowed in '${ action }' routes.`)
 	}
 
 	// validate route shape and allowed actions/groups

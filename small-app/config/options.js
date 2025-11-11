@@ -22,3 +22,10 @@ export const API_ACTION_GROUPS = [
   'many',
   'all'
 ]
+
+export const ALLOWED_METHODS = {
+		'create': ['POST'],
+		'read': ['GET'],
+		'update': ['PATCH'],
+		'delete': ['DELETE']
+	}
