@@ -78,7 +78,6 @@ class Modeler {
 
 	_insertModelData(modelName, data) {
 		this._getPoint(modelName).data.push(data)
-		console.log(this.pointer.models[modelName])
 	}
 }
 
@@ -99,9 +98,14 @@ class SmallDb {
 	}
 	
 	create(model, group, data = null) {
+		console.log(data)
+		if (group === 'all') {
+			return this._sendError(401, 'Only God can create all.')
+		}
+		if (!data || Object.entries(data).length === 0) {
+			return this._sendError(400, 'No data provided.')
+		}
 		switch (group) {
-			case 'all':
-				return this._sendError(401, 'Only God can create all.')
 			case 'many':
 				return this.modeler.setMany(model, [{ test: 'test' }])
 			case 'one':

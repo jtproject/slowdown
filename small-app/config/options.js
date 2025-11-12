@@ -10,22 +10,17 @@ export const MIME_TYPES = {
   '.svg': 'image/svg+xml'
 }
 
-export const API_ACTIONS = [
-  'create',
-  'read',
-  'update',
-  'delete'
-]
+export const ALLOWED_METHODS = {
+	'create': ['POST'],
+	'read': ['GET'],
+	'update': ['PATCH'],
+	'delete': ['DELETE']
+}
+
+export const API_ACTIONS = Object.keys(ALLOWED_METHODS)
 
 export const API_ACTION_GROUPS = [
-  'one',
-  'many',
-  'all'
+	'one',
+	'many',
+	'all'
 ]
-
-export const ALLOWED_METHODS = {
-		'create': ['POST'],
-		'read': ['GET'],
-		'update': ['PATCH'],
-		'delete': ['DELETE']
-	}

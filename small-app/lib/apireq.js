@@ -18,7 +18,6 @@ export default class ApiRequest extends ServerRequest {
 			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: result })
 			this._setStatusCode(200)
 		} catch (err) {
-			console.log(err)
 			return this._sendError(500, err)
 		}
 		return this.end()
@@ -42,12 +41,20 @@ export default class ApiRequest extends ServerRequest {
 		if (!this.db) throw new Error('No db configured')
 		const controller = this.db[action]
 		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
+		console.log(this.req.method)
+		console.log(ALLOWED_METHODS[action].includes(this.req.method))
 		if (ALLOWED_METHODS[action].includes(this.req.method)) {
-			const response = controller.call(this.db, id, group, {})
-			if (response.error) return this._sendError(response.error.code, response.error.message)
-			return response
+			let body = ''
+			this.req.on('data', (chunk) => {
+				body += chunk.toString('utf8')
+			})
+			this.req.on('end', async () => {
+				const response = await controller.call(this.db, id, group, body)
+				if (response.error) return this._sendError(response.error.code, response.error.message)
+				return response
+			})
 		}
-		return this._sendError(405, `Only ${ ALLOWED_METHODS[action].join(' or ') } method(s) are allowed in '${ action }' routes.`)
+		else return this._sendError(405, `Only ${ ALLOWED_METHODS[action].join(' or ') } method(s) are allowed in '${ action }' routes.`)
 	}
 
 	// validate route shape and allowed actions/groups
