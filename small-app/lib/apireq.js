@@ -6,7 +6,8 @@ export default class ApiRequest extends ServerRequest {
 
 	constructor (req, res, db) {
 		super(req, res, db)
-		this.handle()
+		// Wait for body data to be received and parsed before handling the request
+		this.req.on('end', () => this.handle())
 	}
 
 	async handle () {
@@ -14,8 +15,9 @@ export default class ApiRequest extends ServerRequest {
 		const ok = this.splitRoute()
 		if (!ok) return this._send404()
 		try {
-			const result = await this.useRouteController(this.routeParts)
-			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: result })
+			const result = this.db.dispatch(...this.routeParts, { test: 'data' })
+			// const result = await this.useRouteController(this.routeParts)
+			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: this.body })
 			this._setStatusCode(200)
 		} catch (err) {
 			return this._sendError(500, err)
@@ -35,27 +37,27 @@ export default class ApiRequest extends ServerRequest {
 		return true
 	}
 
-	// call the controller on the db object: db[action](id, group)
-	async useRouteController (parts) {
-		const [ id, action, group ] = parts
-		if (!this.db) throw new Error('No db configured')
-		const controller = this.db[action]
-		if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
-		console.log(this.req.method)
-		console.log(ALLOWED_METHODS[action].includes(this.req.method))
-		if (ALLOWED_METHODS[action].includes(this.req.method)) {
-			let body = ''
-			this.req.on('data', (chunk) => {
-				body += chunk.toString('utf8')
-			})
-			this.req.on('end', async () => {
-				const response = await controller.call(this.db, id, group, body)
-				if (response.error) return this._sendError(response.error.code, response.error.message)
-				return response
-			})
-		}
-		else return this._sendError(405, `Only ${ ALLOWED_METHODS[action].join(' or ') } method(s) are allowed in '${ action }' routes.`)
-	}
+	// // call the controller on the db object: db[action](id, group)
+	// async useRouteController (parts) {
+	// 	const [ id, action, group ] = parts
+	// 	if (!this.db) throw new Error('No db configured')
+	// 	const controller = this.db[action]
+	// 	if (typeof controller !== 'function') throw new Error(`Unknown action: ${action}`)
+	// 	console.log(this.req.method)
+	// 	console.log(ALLOWED_METHODS[action].includes(this.req.method))
+	// 	if (ALLOWED_METHODS[action].includes(this.req.method)) {
+	// 		let body = ''
+	// 		this.req.on('data', (chunk) => {
+	// 			body += chunk.toString('utf8')
+	// 		})
+	// 		this.req.on('end', async () => {
+	// 			const response = await controller.call(this.db, id, group, body)
+	// 			if (response.error) return this._sendError(response.error.code, response.error.message)
+	// 			return response
+	// 		})
+	// 	}
+	// 	else return this._sendError(405, `Only ${ ALLOWED_METHODS[action].join(' or ') } method(s) are allowed in '${ action }' routes.`)
+	// }
 
 	// validate route shape and allowed actions/groups
 	_isValidRoute (arr) {

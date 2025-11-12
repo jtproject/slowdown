@@ -1,139 +1,78 @@
-import path from 'path'
 import Filer from './filer.js'
+import Modeler from './modeler.js'
+import { DB_DIRECTORY } from '../config/constants.js'
 import { dbLoadedMessage } from '../config/messages.js'
-import { BLANK_DB } from '../config/objects.js'
-import { generalErrorJson } from '../utils/error.js'
+import { generalError } from '../utils/error.js'
 
-class Modeler {
-	
-	constructor(dirName) {
-		this.object = {}
-		this.pointer = null
-		this.filer = new Filer(dirName)
-		this._populateDatabases()
-	}
-	
-	connect(objName) {
-		this.filer.connect(objName, true)
-		this.pointer = this.object[objName]
-		this._populateModels()
-		console.log(this)
-	}
+class Controller {
 
-	
-	set(point, data) {
-		if (!this.pointer.models[point]) {
-			this._setPoint(point)
-		}
-		this._insertModelData(point, data)
-		return this._getPoint(point)
-		// const response = this.filer.write(point, data)
-		// return response
-	}
-
-	_setPoint (point) {
-		this.pointer.models[point] = this.filer.read(point)
-	}
-
-	_getPoint (point) {
-		return this.pointer.models[point]
+	constructor (filer, modeler) {
+		this._filer = filer
+		this._modeler = modeler
 	}
 	
-	setMany(point, data) {
-		if (!Array.isArray(data)) generalErrorJson(`Data for setMany must be an array. Received ${ typeof(data) } instead.`)
-		const response = []
-		data.forEach((entry) => {
-			console.log(entry)
-			this._insertModelData(point, entry)
-			response.push(entry)
-		})
-		this.filer.write(point, data)
-		return response
+	create(model, group, data = null) {
+		// console.log(data)
+		// if (group === 'all') {
+		// 	return this._sendError(401, 'Only God can create all.')
+		// }
+		// if (!data || Object.entries(data).length === 0) {
+		// 	return this._sendError(400, 'No data provided.')
+		// }
+		// switch (group) {
+		// 	case 'many':
+		// 		return this.modeler.setMany(model, [{ test: 'test' }])
+		// 	case 'one':
+		// 		return this.modeler.set(model, data)
+		// 	default:
+		// 		return {}
+		// }
+		return { test: 'data' }
 	}
 	
-	get(point) {
-		const data = this.filer.read(point)
-		this.pointer.models[point] = data
-		return data
+	read(model, group, data = null) {
+		// let filteredData = this.modeler.get(model).data
+		// if (data) {
+		// 	Object.entries(data).forEach(([key, value]) => {
+		// 		filteredData = filteredData.filter(entry => entry[key] === value)
+		// 	})
+		// 	if (filteredData.length === 0 && group !== 'all') {
+		// 		return this._sendError(404, 'No data.')
+		// 	}
+		// }
+		// if (group === 'one') return filteredData[0]
+		// return filteredData
+		return { test: 'data' }
 	}
 	
-	_populateDatabases () {
-		this.filer.content.forEach((dbName) => {
-			this._appendDb(dbName)
-		})
+	update(model, group, data = {}) {
+		return { test: 'data' }
 	}
 	
-	_appendDb (dbName) {
-		this.object[dbName] = BLANK_DB(dbName)
-	}
-	
-	_populateModels () {
-		this.filer.content.forEach((modelName) => {
-			const name = modelName.split('.')[0]
-			this.pointer.models[name] = this.get(name)
-			this.pointer.modelCount++
-		})
-	}
-
-	_insertModelData(modelName, data) {
-		this._getPoint(modelName).data.push(data)
+	delete(model, group, data = {}) {
+		return { test: 'data' }
 	}
 }
 
 class SmallDb {
 
 	constructor() {
-		const dir = path.join(process.cwd(), '.data')
-		this.modeler = new Modeler(dir)		
+		this._filer = new Filer(DB_DIRECTORY)
+		this._modeler = new Modeler(this._filer.content)
 	}
 	
 	connect(name) {
-		this.modeler.connect(name)
+		this._filer.connect(name)
+		this._modeler.connect(name, this._filer.content)
 		dbLoadedMessage(name)
+	}
+
+	dispatch(modelName, action, group) {
+		return new Controller(this._filer, this._modeler)[action].call(modelName, group, data)
 	}
 
 	_sendError(code, message) {
 		return { error: { code, message	}}
-	}
-	
-	create(model, group, data = null) {
-		console.log(data)
-		if (group === 'all') {
-			return this._sendError(401, 'Only God can create all.')
-		}
-		if (!data || Object.entries(data).length === 0) {
-			return this._sendError(400, 'No data provided.')
-		}
-		switch (group) {
-			case 'many':
-				return this.modeler.setMany(model, [{ test: 'test' }])
-			case 'one':
-				return this.modeler.set(model, data)
-			default:
-				return {}
-		}
-	}
-
-	read(model, group, data = null) {
-		let filteredData = this.modeler.get(model).data
-		if (data) {
-			Object.entries(data).forEach(([key, value]) => {
-				filteredData = filteredData.filter(entry => entry[key] === value)
-			})
-			if (filteredData.length === 0 && group !== 'all') {
-				return this._sendError(404, 'No data.')
-			}
-		}
-		if (group === 'one') return filteredData[0]
-		return filteredData
-	}
-
-	update(model, group, data = {}) {
-
-	}
-	
-	delete(model, group, data = {}) {
-
 	}
 }
 

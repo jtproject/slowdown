@@ -4,29 +4,20 @@ import { capitalFirstLetterOnly } from '../utils/string.js'
 import { generalError, referenceError } from '../utils/error.js'
 import { BLANK_MODEL } from '../config/objects.js'
 
-/**
- * File-based storage system for managing JSON data files
- * within a directory structure
- */
 export default class Filer {
-
-	// === Constructor and Public Interface ===
 	
 	constructor(dirName) {
 		this._topDir = dirName
-		this._ext = 'jsys'
 		this.content = []
 		this._setActiveDir(dirName, true)
 		this._setActiveFile(null)
 	}
 
-	// Connect to a database directory, creating it if needed
 	connect(dirName, create = true) {
 		this._setActiveDir(this._topDir)
 		this._cd(dirName, create)
 	}
 
-	// Switch to an existing database directory
 	switch(dirName) {
 		try {
 			this.connect(dirName, false)
@@ -36,16 +27,13 @@ export default class Filer {
 		}
 	}
 
-	// Write data to a JSON file
 	write(fileName, data) {
-		console.log(data)
 		this._setActiveFile(fileName, true)
 		this._writeFile(data)
 		this._setActiveFile(null)
 		return data
 	}
 
-	// Read and parse JSON data from a file
 	read(fileName) {
 		this._setActiveFile(fileName, true)
 		const data = this._readFile(fileName)
@@ -53,14 +41,10 @@ export default class Filer {
 		return data
 	}
 
-	// === Directory Operations ===
-	
-	// List contents of current directory
 	_ls() {
 		return fs.readdirSync(this.activeDir)
 	}
 
-	// Change directory, handling relative and absolute paths
 	_cd(dir, create = false) {
 		if (dir.startsWith('/')) {
 			return this._setActiveDir(dir)
@@ -96,8 +80,6 @@ export default class Filer {
 		fs.mkdirSync(pathname, { recursive: true })
 	}
 
-	// === File Operations ===
-
 	_setActiveFile(fileName, create = false) {
 		if (fileName === null) return this.activeFile = null
 		const baseName = this._normalizeFileName(fileName)
@@ -126,9 +108,6 @@ export default class Filer {
 		fs.writeFileSync(this._filePath(target), JSON.stringify(data, null, 2), 'utf8')
 	}
 
-	// === Utility Methods ===
-
-	// Check if file/dir exists and create if needed
 	_checkIfExists(value, type, create = false) {
 		const methods = this._checkMethods()
 		if (!methods[type][0](value)) {

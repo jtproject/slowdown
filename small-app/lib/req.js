@@ -13,6 +13,23 @@ export default class ServerRequest {
 		}
 		this.data = null
 		this.error = null
+		this.body = ''
+		
+		// Accumulate incoming data chunks
+		this.req.on('data', (chunk) => {
+			this.body += chunk.toString('utf8')
+		})
+		
+		// Parse body when all data is received
+		this.req.on('end', () => {
+			if (this.body) {
+				try {
+					this.body = JSON.parse(this.body)
+				} catch (err) {
+					this.error = new Error('Failed to parse request body as JSON')
+				}
+			}
+		})
 	}
 
 	// Convenience: set route string parsed from URL
