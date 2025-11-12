@@ -1,5 +1,5 @@
 import http from 'http'
-import SmallDb from './db.js'
+import SmallDb from './lib/db.js'
 import ApiRequest from './lib/apireq.js'
 import HtmlRequest from './lib/htmlreq.js'
 import dotenv from 'dotenv'

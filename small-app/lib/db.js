@@ -1,9 +1,8 @@
-// Minimal file-based JSON DB for Node.js
 import path from 'path'
-import { dbLoadedMessage } from './config/messages.js'
-import Filer from './lib/filer.js'
-import { generalErrorJson } from './utils/error.js'
-import { BLANK_DB, BLANK_MODEL } from './config/objects.js'
+import Filer from './filer.js'
+import { dbLoadedMessage } from '../config/messages.js'
+import { BLANK_DB } from '../config/objects.js'
+import { generalErrorJson } from '../utils/error.js'
 
 class Modeler {
 	
