@@ -63,7 +63,7 @@ class SmallDb {
 	
 	connect(name) {
 		this._filer.connect(name)
-		this._modeler.connect(name, this._filer.content)
+		this._modeler.connect(name, this._filer)
 		dbLoadedMessage(name)
 	}
 

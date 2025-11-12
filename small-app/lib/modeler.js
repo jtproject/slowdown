@@ -10,18 +10,20 @@ export default class Modeler {
 	}
 	
 
-	/** === public methods */
+	/**
+	 * === public methods */
 
-	connect (dbName, content) {
+	connect (dbName, filer) {
 		// select database by name
 		this._setActiveDb(dbName)
 		// create model objects from filesys content
-		this._populateModels(content)
+		this._populateModels(filer)
 		console.log(this)
 	}
 
 
-	/** === database controls */
+	/** 
+	 * === database controls */
 
 	_populateDatabases (content) {
 		// empty object to track file data
@@ -43,18 +45,35 @@ export default class Modeler {
 	}
 
 
-	/** === model controls */
+	/** 
+	 * === model controls */
 
-	_populateModels (content) {
-		content.forEach((model) => {
-			const name = fileNameRoot(model)
-			this._activeDb.models[name] = this.get(name)
+	_populateModels (filer) {
+		filer.content.forEach((model) => {
+			const modelName = fileNameRoot(model)
+			this._activeDb.models[modelName] = this.get(modelName)
+			this._loadModelData(modelName, filer.read)
 			this._activeDb.modelCount++
 		})
 	}
 
+	_loadModelData (modelName, callback) {
+		this._activeDb.models[modelName] = callback.call(modelName)
+	}
 
-
+	_getModelData (modelName) {
+		return this._activeDb.models[modelName]
+	}
+	
+	_insertModelData(modelName, data) {
+		const modelData = this._getModelData(modelName)
+		if (modelData.data) {
+			modelData.data.push(data)
+			this._getModelData(modelName).index++
+		}
+	}
+	
+	
 
 
 
@@ -72,14 +91,6 @@ export default class Modeler {
 		// return response
 	}
 
-	_setPoint (point) {
-		this._activeDb.models[point] = this.filer.read(point)
-	}
-
-	_getDbByName (name) {
-		return this._activeDb.models[name]
-	}
-	
 	setMany(point, data) {
 		if (!Array.isArray(data)) generalErrorJson(`Data for setMany must be an array. Received ${ typeof(data) } instead.`)
 		const response = []
@@ -91,18 +102,9 @@ export default class Modeler {
 		return response
 	}
 	
-
-
 	get(point) {
 		// const data = this.filer.read(point)
 		// this._activeDb.models[point] = data
 		// return data
-	}
-	
-	
-	
-
-	_insertModelData(modelName, data) {
-		this._getPoint(modelName).data.push(data)
 	}
 }
