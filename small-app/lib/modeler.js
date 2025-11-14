@@ -9,26 +9,21 @@ export default class Modeler {
 		this._populateDatabases(content)
 	}
 	
-
 	/**
 	 * === public methods */
 
 	connect (dbName, filer) {
-		// select database by name
+		console.log(filer)
 		this._setActiveDb(dbName)
-		// create model objects from filesys content
 		this._populateModels(filer)
 		console.log(this)
 	}
-
 
 	/** 
 	 * === database controls */
 
 	_populateDatabases (content) {
-		// empty object to track file data
 		this.object = {}
-		// create db objects from filesys content
 		content.forEach((dbName) => {
 			this._appendDb(dbName)
 		})
@@ -40,10 +35,8 @@ export default class Modeler {
 	}
 
 	_appendDb (dbName) {
-		// create blank db object template
 		this.object[dbName] = BLANK_DB(dbName)
 	}
-
 
 	/** 
 	 * === model controls */
@@ -52,13 +45,13 @@ export default class Modeler {
 		filer.content.forEach((model) => {
 			const modelName = fileNameRoot(model)
 			this._activeDb.models[modelName] = this.get(modelName)
-			this._loadModelData(modelName, filer.read)
+			this._loadModelData(modelName, filer.read.bind(filer))
 			this._activeDb.modelCount++
 		})
 	}
 
 	_loadModelData (modelName, callback) {
-		this._activeDb.models[modelName] = callback.call(modelName)
+		this._activeDb.models[modelName] = callback(modelName)
 	}
 
 	_getModelData (modelName) {

@@ -1,18 +1,17 @@
-
-/*
-	Base request wrapper that holds the http `req` and `res` objects and provides common helpers for subclasses
-*/
 export default class ServerRequest {
+
 	constructor (req, res, db = null) {
+		this.data = null
+		this.error = null
 		this.req = req
 		this.res = res
 		this.db = db || null
-		this.statusCode = 200
-		this.headers = {
-			'Content-Type': 'application/json'
-		}
-		this.data = null
-		this.error = null
+		this._setStatusCode(500)
+		this._collectBodyData()
+		this.headers = this._setContentType()
+	}
+	
+	_collectBodyData () {
 		this.body = ''
 		
 		// Accumulate incoming data chunks
@@ -30,14 +29,14 @@ export default class ServerRequest {
 				}
 			}
 		})
+
 	}
 
-	// Convenience: set route string parsed from URL
+
 	_setRoute (route) {
 		this.route = route
 	}
 
-	// Convenience: set response body (object or string)
 	_setData (data) {
 		this.data = data
 	}
