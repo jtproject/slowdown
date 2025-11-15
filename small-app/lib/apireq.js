@@ -69,10 +69,15 @@ export default class ApiRequest extends ServerRequest {
 		)
 	}
 
+	_setContentType () {
+		this.headers['Content-Type'] = 'application/json'
+	}
+
 	_sendError(code, message) {
 		this._setStatusCode(code)
 		this._setData({ ok: false, code, status: RESPONSE_CODES[code], error: message })
 		this.end()
+		throw Error(message)
 	}
 
 	_send404 () {

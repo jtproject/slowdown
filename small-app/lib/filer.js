@@ -1,8 +1,9 @@
 import fs from 'fs'
 import path from 'path'
-import { capitalFirstLetterOnly } from '../utils/string.js'
-import { generalError, referenceError } from '../utils/error.js'
+import { FILE_EXT } from '../config/constants.js'
 import { BLANK_MODEL } from '../config/objects.js'
+import { generalError, referenceError } from '../utils/error.js'
+import { capitalFirstLetterOnly } from '../utils/string.js'
 
 export default class Filer {
 	
@@ -133,15 +134,13 @@ export default class Filer {
 
 	_normalizeFileName(fileName) {
 		if (typeof fileName !== 'string') return fileName
-		const suffix = '.' + this._ext
-		if (fileName.endsWith(suffix)) return fileName.slice(0, -suffix.length)
+		if (fileName.endsWith(FILE_EXT)) return fileName.slice(0, -FILE_EXT.length)
 		return fileName
 	}
 
 	_fileName(fileName) {
 		if (!fileName) return fileName
-		const suffix = '.' + this._ext
-		if (fileName.endsWith(suffix)) return fileName
-		return [fileName, this._ext].join('.')
+		if (fileName.endsWith(FILE_EXT)) return fileName
+		return fileName + FILE_EXT
 	}
 }

@@ -8,18 +8,18 @@ export default class ServerRequest {
 		this.db = db || null
 		this._setStatusCode(500)
 		this._collectBodyData()
-		this.headers = this._setContentType()
+		this.headers = {
+			'Content-Type': 'application/json'
+		}
 	}
 	
 	_collectBodyData () {
 		this.body = ''
 		
-		// Accumulate incoming data chunks
 		this.req.on('data', (chunk) => {
 			this.body += chunk.toString('utf8')
 		})
 		
-		// Parse body when all data is received
 		this.req.on('end', () => {
 			if (this.body) {
 				try {

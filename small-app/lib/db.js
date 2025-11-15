@@ -8,7 +8,7 @@ import { generalError } from '../utils/error.js'
 class Validater {
 	
 	constructor () {
-		
+
 	}
 }
 
@@ -25,7 +25,7 @@ class SmallDb {
 		dbLoadedMessage(name)
 	}
 
-	dispatch(modelName, action, group) {
+	dispatch(modelName, action, group, data) {
 		const controller = new Controller(this._filer, this._modeler)
 		[action].call(modelName, group, data)
 		return controller.ok
