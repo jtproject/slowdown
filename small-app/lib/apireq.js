@@ -16,8 +16,9 @@ export default class ApiRequest extends ServerRequest {
 		if (!ok) return this._send404()
 		try {
 			const result = this.db.dispatch(...this.routeParts, { test: 'data' })
+			if (result.ok === false) return this._sendError(result.code, result.error?.message ?? 'Unknown error occured in Controller.')
 			// const result = await this.useRouteController(this.routeParts)
-			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: this.body })
+			this._setData({ ok: true, code: 200, status: RESPONSE_CODES[200], data: result.data })
 			this._setStatusCode(200)
 		} catch (err) {
 			return this._sendError(500, err)

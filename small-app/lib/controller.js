@@ -3,7 +3,35 @@ export default class Controller {
 	constructor (filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
+		this.response = {
+			ok: false,
+			code: null,
+			data: null,
+			error: null
+		}
 	}
+
+	/*
+	 * === response methods */
+
+	_dispatch (ok, code) {
+		this.response.ok = ok
+		this.response.code = code
+		return this.response
+	}
+
+	_sendError (error, code = 500) {
+		this.error = error
+		return this._dispatch(false, code)
+	}
+
+	_sendData (data, code = 200) {
+		this.data = data
+		return this._dispatch(true, code)
+	}
+
+	/**
+	 * === public  actions */
 	
 	create(model, group, data = null) {
 		// console.log(data)
@@ -21,7 +49,7 @@ export default class Controller {
 		// 	default:
 		// 		return {}
 		// }
-		return { test: 'data' }
+		return this._sendData(data, 201)
 	}
 	
 	read(model, group, data = null) {

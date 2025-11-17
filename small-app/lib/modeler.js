@@ -13,10 +13,8 @@ export default class Modeler {
 	 * === public methods */
 
 	connect (dbName, filer) {
-		console.log(filer)
 		this._setActiveDb(dbName)
 		this._populateModels(filer)
-		console.log(this)
 	}
 
 	/** 

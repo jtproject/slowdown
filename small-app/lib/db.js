@@ -17,6 +17,7 @@ class SmallDb {
 	constructor() {
 		this._filer = new Filer(DB_DIRECTORY)
 		this._modeler = new Modeler(this._filer.content)
+		this._validater = new Validater()
 	}
 	
 	connect(name) {
@@ -26,9 +27,9 @@ class SmallDb {
 	}
 
 	dispatch(modelName, action, group, data) {
-		const controller = new Controller(this._filer, this._modeler)
+		return new Controller(this._filer, this._modeler)
 		[action].call(modelName, group, data)
-		return controller.ok
+		// return controller.ok
 	}
 
 	validate () {}
