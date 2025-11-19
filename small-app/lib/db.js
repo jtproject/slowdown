@@ -3,7 +3,6 @@ import Modeler from './modeler.js'
 import Controller from './controller.js'
 import { DB_DIRECTORY } from '../config/constants.js'
 import { dbLoadedMessage } from '../config/messages.js'
-import { generalError } from '../utils/error.js'
 
 class Validater {
 	
@@ -28,8 +27,7 @@ class SmallDb {
 
 	dispatch(modelName, action, group, data) {
 		return new Controller(this._filer, this._modeler)
-		[action].call(modelName, group, data)
-		// return controller.ok
+		[action](modelName, group, data)
 	}
 
 	validate () {}

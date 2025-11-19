@@ -1,14 +1,11 @@
+import { BLANK_API_RESPONSE } from "../config/objects"
+
 export default class Controller {
 
 	constructor (filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
-		this.response = {
-			ok: false,
-			code: null,
-			data: null,
-			error: null
-		}
+		this.response = BLANK_API_RESPONSE
 	}
 
 	/*
@@ -21,12 +18,12 @@ export default class Controller {
 	}
 
 	_sendError (error, code = 500) {
-		this.error = error
+		this.response.error = error
 		return this._dispatch(false, code)
 	}
 
 	_sendData (data, code = 200) {
-		this.data = data
+		this.response.data = data
 		return this._dispatch(true, code)
 	}
 

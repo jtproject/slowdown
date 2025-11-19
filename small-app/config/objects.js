@@ -13,3 +13,12 @@ export function BLANK_MODEL (name) {
 		data: []
 	}
 }
+
+export function BLANK_API_RESPONSE () {
+	return {
+		ok: false,
+		code: null,
+		error: null,
+		data: null
+	}
+}
