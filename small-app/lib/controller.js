@@ -1,11 +1,11 @@
-import { BLANK_API_RESPONSE } from "../config/objects"
+import { BLANK_API_RESPONSE } from "../config/objects.js"
 
 export default class Controller {
 
 	constructor (filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
-		this.response = BLANK_API_RESPONSE
+		this.response = BLANK_API_RESPONSE()
 	}
 
 	/*
@@ -18,11 +18,13 @@ export default class Controller {
 	}
 
 	_sendError (error, code = 500) {
+		delete this.response.data
 		this.response.error = error
 		return this._dispatch(false, code)
 	}
 
 	_sendData (data, code = 200) {
+		delete this.response.error
 		this.response.data = data
 		return this._dispatch(true, code)
 	}
@@ -30,8 +32,12 @@ export default class Controller {
 	/**
 	 * === public  actions */
 	
-	create(model, group, data = null) {
-		// console.log(data)
+	create(model, group, data) {
+		console.log(data)
+		if (data === '') return this._sendError({
+			type: 'ValueError',
+			message: 'No Data provided.'
+		}, 400)
 		// if (group === 'all') {
 		// 	return this._sendError(401, 'Only God can create all.')
 		// }

@@ -32,12 +32,11 @@ export default class ServerRequest {
 
 	}
 
-
 	_setRoute (route) {
 		this.route = route
 	}
 
-	_setData (data) {
+	_setData (data) {		
 		this.data = data
 	}
 	

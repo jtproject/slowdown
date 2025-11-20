@@ -14,8 +14,9 @@ export default class ApiRequest extends ServerRequest {
 		const ok = this.splitRoute()
 		if (!ok) return this._send404()
 		try {
-			const result = this.db.dispatch(...this.routeParts, { test: 'data' })
+			const result = this.db.dispatch(...this.routeParts, this.body)
 			if (result.ok === false) return this._sendError(result.code, result.error?.message ?? 'Unknown error occured in Controller.')
+			console.log(result)
 			this._setData(result)
 			this._setStatusCode(result.code)
 		} catch (err) {
@@ -52,8 +53,7 @@ export default class ApiRequest extends ServerRequest {
 	_sendError(code, message) {
 		this._setStatusCode(code)
 		this._setData({ ok: false, code, status: RESPONSE_CODES[code], error: message })
-		this.end()
-		throw Error(message)
+		return this.end()
 	}
 
 	_send404 () {
