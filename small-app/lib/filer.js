@@ -35,8 +35,8 @@ export default class Filer {
 		return data
 	}
 
-	read(fileName) {
-		this._setActiveFile(fileName, true)
+	read(fileName, create = false) {
+		this._setActiveFile(fileName, create)
 		const data = this._readFile(fileName)
 		this._setActiveFile(null)
 		return data

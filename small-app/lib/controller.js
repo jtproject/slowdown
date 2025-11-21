@@ -33,25 +33,38 @@ export default class Controller {
 	 * === public  actions */
 	
 	create(model, group, data) {
-		console.log(data)
-		if (data === '') return this._sendError({
-			type: 'ValueError',
-			message: 'No Data provided.'
-		}, 400)
-		// if (group === 'all') {
-		// 	return this._sendError(401, 'Only God can create all.')
-		// }
-		// if (!data || Object.entries(data).length === 0) {
-		// 	return this._sendError(400, 'No data provided.')
-		// }
-		// switch (group) {
-		// 	case 'many':
-		// 		return this.modeler.setMany(model, [{ test: 'test' }])
-		// 	case 'one':
-		// 		return this.modeler.set(model, data)
-		// 	default:
-		// 		return {}
-		// }
+
+		// body required
+		if (data === '') {
+			return this._sendError({
+				type: 'ValueError',
+				message: 'No Data provided.'
+			}, 400)
+		}
+
+		// 'all' not allowed
+		if (group === 'all') {
+			return this._sendError({
+				type: 'FatalError',
+				message: 'Only God can create all.'
+			}, 401)
+		}
+
+		let target = this._modeler.get(model)
+		if (!target) {
+			target = this._filer.read(model, true)
+			this._modeler.new(model, target)
+		}
+
+		switch (group) {
+			case 'many':
+
+				// return this._modeler.setMany(model, data)
+			case 'one':
+				// return this._modeler.set(model, data)
+			default:
+				return {}
+		}
 		return this._sendData(data, 201)
 	}
 	

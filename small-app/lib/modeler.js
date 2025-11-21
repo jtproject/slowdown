@@ -16,7 +16,11 @@ export default class Modeler {
 		this._setActiveDb(dbName)
 		this._populateModels(filer)
 	}
+	
+	get(modelName) {
 
+	}
+	
 	/** 
 	 * === database controls */
 
@@ -35,7 +39,6 @@ export default class Modeler {
 	_appendDb (dbName) {
 		this.object[dbName] = BLANK_DB(dbName)
 	}
-
 	/** 
 	 * === model controls */
 
@@ -56,7 +59,7 @@ export default class Modeler {
 		return this._activeDb.models[modelName]
 	}
 	
-	_insertModelData(modelName, data) {
+	_insertModelData (modelName, data) {
 		const modelData = this._getModelData(modelName)
 		if (modelData.data) {
 			modelData.data.push(data)
@@ -72,14 +75,15 @@ export default class Modeler {
 
 
 	
-	set(point, data) {
-		if (!this._activeDb.models[point]) {
-			this._setPoint(point)
+	set(modelName, data) {
+		if (!this._getModelData(modelName)) {
+			// this._setPoint(point)
+			console.log('no model')
+			return
 		}
-		this._insertModelData(point, data)
-		return this._getPoint(point)
-		// const response = this.filer.write(point, data)
-		// return response
+		// this._insertModelData(point, data)
+		// return this._getPoint(point)
+		console.log('bye')
 	}
 
 	setMany(point, data) {
@@ -89,13 +93,7 @@ export default class Modeler {
 			this._insertModelData(point, entry)
 			response.push(entry)
 		})
-		this.filer.write(point, data)
 		return response
 	}
 	
-	get(point) {
-		// const data = this.filer.read(point)
-		// this._activeDb.models[point] = data
-		// return data
-	}
 }
