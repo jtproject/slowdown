@@ -15,14 +15,17 @@ export default class ApiRequest extends ServerRequest {
 		if (!ok) return this._send404()
 		try {
 			const result = this.db.dispatch(...this.routeParts, this.body)
-			if (result.ok === false) return this._sendError(result.code, result.error?.message ?? 'Unknown error occured in Controller.')
 			console.log(result)
+			if (result.ok === false) {
+				return this._sendError(result.code, result.error?.message ?? 'Unknown error occured in Controller.')
+			}
 			this._setData(result)
 			this._setStatusCode(result.code)
-		} catch (err) {
-			return this._sendError(500, err)
+			return this.end()
+		} 
+		catch (err) {
+			return this._sendError(500, err.message)
 		}
-		return this.end()
 	}
 
 	parseRoute () {

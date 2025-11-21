@@ -29,7 +29,6 @@ export default class ServerRequest {
 				}
 			}
 		})
-
 	}
 
 	_setRoute (route) {

@@ -1,4 +1,4 @@
-import { BLANK_DB } from '../config/objects.js'
+import { BLANK_DB, BLANK_MODEL } from '../config/objects.js'
 import { generalErrorJson } from '../utils/error.js'
 import { fileNameRoot } from '../utils/file.js'
 
@@ -16,9 +16,15 @@ export default class Modeler {
 		this._setActiveDb(dbName)
 		this._populateModels(filer)
 	}
+
+	new (modelName, object = BLANK_MODEL) {
+		this._createModelTemplate(modelName, object)
+	}
 	
 	get(modelName) {
-
+		const result = this._getModelData(modelName)
+		if (!result) return false
+		return result
 	}
 	
 	/** 
@@ -39,24 +45,24 @@ export default class Modeler {
 	_appendDb (dbName) {
 		this.object[dbName] = BLANK_DB(dbName)
 	}
+
 	/** 
 	 * === model controls */
 
 	_populateModels (filer) {
 		filer.content.forEach((model) => {
 			const modelName = fileNameRoot(model)
-			this._activeDb.models[modelName] = this.get(modelName)
-			this._loadModelData(modelName, filer.read.bind(filer))
-			this._activeDb.modelCount++
+			this._createModelTemplate(modelName, filer.read(modelName))
 		})
 	}
-
-	_loadModelData (modelName, callback) {
-		this._activeDb.models[modelName] = callback(modelName)
-	}
-
+	
 	_getModelData (modelName) {
 		return this._activeDb.models[modelName]
+	}
+	
+	_createModelTemplate (modelName, template = BLANK_MODEL) {
+		this._activeDb.models[modelName] = template
+		this._activeDb.modelCount++
 	}
 	
 	_insertModelData (modelName, data) {

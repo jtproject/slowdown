@@ -1,4 +1,5 @@
-import { BLANK_API_RESPONSE } from "../config/objects.js"
+import { BLANK_API_RESPONSE, BLANK_MODEL } from "../config/objects.js"
+import RESPONSE_CODES from "../config/status.js"
 
 export default class Controller {
 
@@ -14,6 +15,7 @@ export default class Controller {
 	_dispatch (ok, code) {
 		this.response.ok = ok
 		this.response.code = code
+		this.response.status = RESPONSE_CODES[code]
 		return this.response
 	}
 
@@ -29,10 +31,33 @@ export default class Controller {
 		return this._dispatch(true, code)
 	}
 
+	_createEntry (model, data) {
+		if (Array.isArray(data)) {
+			data = data[0]
+			console.warn('Array sent to /one route.')
+		}
+		const timestamp = new Date()
+		const entry = {
+			...data,
+			id: 'coming-soon',
+			seq: model.index,
+			created: timestamp,
+			updated: timestamp
+		}
+		model.data.push(entry)
+		model.index++
+		model.count = model.data.length
+		return entry
+	}
+
+	_writeFile (model) {
+		this._filer.write(model.name, model)
+	}
+
 	/**
 	 * === public  actions */
 	
-	create(model, group, data) {
+	create(modelName, group, data) {
 
 		// body required
 		if (data === '') {
@@ -50,37 +75,63 @@ export default class Controller {
 			}, 401)
 		}
 
-		let target = this._modeler.get(model)
+		// grab the model being used
+		let target = this._modeler.get(modelName)
 		if (!target) {
-			target = this._filer.read(model, true)
-			this._modeler.new(model, target)
+			this._modeler.new(modelName)
+			this._filer.write(modelName, BLANK_MODEL)
+			target = this._modeler.get(modelName)
 		}
 
+		// for sending data after instructions are complete
+		const writeAndSend = (data) => {			
+			this._writeFile(target)
+			return this._sendData(data, 201)
+		}
+
+		// error handling for /create routes 
+		const sendError = (message) => {
+			return this._sendError({
+				type: 'ValueError',
+				message
+			}, 400)
+		}
+
+		// route to the proper set of instructions
 		switch (group) {
 			case 'many':
-
-				// return this._modeler.setMany(model, data)
+				if (!Array.isArray(data)) {
+					return sendError('Data provided must be an array.')
+				}
+				const ids = []
+				data.forEach((d) => {
+					const entry = this._createEntry(target, d)
+					ids.push(entry.seq)
+				})
+				return writeAndSend({ ids })
 			case 'one':
-				// return this._modeler.set(model, data)
+				const entry = this._createEntry(target, data)
+				return writeAndSend({ id: entry.seq })
 			default:
-				return {}
+				return sendError(`Invalid group, '/${ group }', was requested.`)
 		}
-		return this._sendData(data, 201)
 	}
 	
-	read(model, group, data = null) {
-		// let filteredData = this.modeler.get(model).data
-		// if (data) {
-		// 	Object.entries(data).forEach(([key, value]) => {
-		// 		filteredData = filteredData.filter(entry => entry[key] === value)
-		// 	})
-		// 	if (filteredData.length === 0 && group !== 'all') {
-		// 		return this._sendError(404, 'No data.')
-		// 	}
-		// }
-		// if (group === 'one') return filteredData[0]
-		// return filteredData
-		return { test: 'data' }
+	read(modelName, group, data) {
+		let filteredData = this._modeler.get(modelName).data
+		if (data) {
+			Object.entries(data).forEach(([key, value]) => {
+				filteredData = filteredData.filter(entry => entry[key] === value)
+			})
+			if (filteredData.length === 0 && group !== 'all') {
+				return this._sendError({
+					type: 'QueryError',
+					message: 'No data found.'
+				}, 404)
+			}
+		}
+		if (group === 'one') return this._sendData(filteredData[0])
+		return this._sendData(filteredData)
 	}
 	
 	update(model, group, data = {}) {

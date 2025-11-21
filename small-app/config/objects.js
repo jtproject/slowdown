@@ -18,6 +18,7 @@ export function BLANK_API_RESPONSE () {
 	return {
 		ok: false,
 		code: null,
+		status: null,
 		error: null,
 		data: null
 	}
