@@ -54,6 +54,34 @@ export default class Controller {
 		this._filer.write(model.name, model)
 	}
 
+	_getTarget (modelName) {
+		let target = this._modeler.get(modelName)
+		if (!target) {
+			this._modeler.new(modelName)
+			this._filer.write(modelName, BLANK_MODEL)
+			target = this._modeler.get(modelName)
+		}
+		return target
+	}
+
+	_getTargetData (modelName) {
+		return this._getTarget(modelName).data
+	}
+
+	_filterData (data, filters) {
+		Object.entries(filters).forEach(([key, value]) => {
+			data = data.filter(entry => entry[key] === value)
+		})
+		return data
+	}
+
+	_send404 () {
+		return this._sendError({
+			type: 'QueryError',
+			message: 'No data found.'
+		}, 404)
+	}
+
 	/**
 	 * === public  actions */
 	
@@ -76,12 +104,7 @@ export default class Controller {
 		}
 
 		// grab the model being used
-		let target = this._modeler.get(modelName)
-		if (!target) {
-			this._modeler.new(modelName)
-			this._filer.write(modelName, BLANK_MODEL)
-			target = this._modeler.get(modelName)
-		}
+		const target = this._getTarget(modelName)
 
 		// for sending data after instructions are complete
 		const writeAndSend = (data) => {			
@@ -116,26 +139,28 @@ export default class Controller {
 				return sendError(`Invalid group, '/${ group }', was requested.`)
 		}
 	}
-	
+
 	read(modelName, group, data) {
-		let filteredData = this._modeler.get(modelName).data
-		if (data) {
-			Object.entries(data).forEach(([key, value]) => {
-				filteredData = filteredData.filter(entry => entry[key] === value)
-			})
-			if (filteredData.length === 0 && group !== 'all') {
-				return this._sendError({
-					type: 'QueryError',
-					message: 'No data found.'
-				}, 404)
-			}
+
+		const sendError = () => {
+			return this._sendError({
+				type: 'ValueError',
+				message: 'No search parameters provided.'
+			}, 400)
 		}
-		if (group === 'one') return this._sendData(filteredData[0])
+
+		let filteredData = this._getTargetData(modelName)
+		if (group !== 'all') {
+			if (data === '') return sendError()
+			filteredData = this._filterData(filteredData, data)
+			if (filteredData.length === 0) return this._send404()
+			filteredData = group === 'one' ? filteredData[0] : filteredData
+		}
 		return this._sendData(filteredData)
 	}
 	
 	update(model, group, data = {}) {
-		return { test: 'data' }
+	
 	}
 	
 	delete(model, group, data = {}) {

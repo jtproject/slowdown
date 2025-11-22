@@ -31,14 +31,6 @@ class SmallDb {
 	}
 
 	validate () {}
-
-	_sendError(code, message) {
-		return { error: { code, message	}}
-	}
-
-	_sendData (data) {
-		return { data }
-	}
 }
 
 export default SmallDb
