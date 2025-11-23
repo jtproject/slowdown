@@ -63,11 +63,11 @@ export default class Controller {
 		}
 		return target
 	}
-
+	
 	_getTargetData (modelName) {
 		return this._getTarget(modelName).data
 	}
-
+	
 	_filterData (data, filters) {
 		Object.entries(filters).forEach(([key, value]) => {
 			data = data.filter(entry => entry[key] === value)
@@ -75,11 +75,27 @@ export default class Controller {
 		return data
 	}
 
+	_send400 (message) {
+		return this._sendError({
+			type: 'ValueError',
+			message
+		}, 400)
+	}
+
+	_sendInvalidGroup (group) {
+		return this._send400(`Invalid group, '/${ group }', was requested.`)
+	}
+
 	_send404 () {
 		return this._sendError({
 			type: 'QueryError',
 			message: 'No data found.'
 		}, 404)
+	}
+
+	_writeAndSend (target, data, code = 201) {			
+		this._writeFile(target)
+		return this._sendData(data, code)
 	}
 
 	/**
@@ -106,20 +122,6 @@ export default class Controller {
 		// grab the model being used
 		const target = this._getTarget(modelName)
 
-		// for sending data after instructions are complete
-		const writeAndSend = (data) => {			
-			this._writeFile(target)
-			return this._sendData(data, 201)
-		}
-
-		// error handling for /create routes 
-		const sendError = (message) => {
-			return this._sendError({
-				type: 'ValueError',
-				message
-			}, 400)
-		}
-
 		// route to the proper set of instructions
 		switch (group) {
 			case 'many':
@@ -131,36 +133,67 @@ export default class Controller {
 					const entry = this._createEntry(target, d)
 					ids.push(entry.seq)
 				})
-				return writeAndSend({ ids })
+				return this._writeAndSend(target, { ids })
 			case 'one':
 				const entry = this._createEntry(target, data)
-				return writeAndSend({ id: entry.seq })
+				return this._writeAndSend(target, { id: entry.seq })
 			default:
-				return sendError(`Invalid group, '/${ group }', was requested.`)
+				return this._sendInvalidGroup(group)
 		}
 	}
 
 	read(modelName, group, data) {
-
-		const sendError = () => {
-			return this._sendError({
-				type: 'ValueError',
-				message: 'No search parameters provided.'
-			}, 400)
-		}
-
 		let filteredData = this._getTargetData(modelName)
 		if (group !== 'all') {
-			if (data === '') return sendError()
+			if (data === '') {
+				return this._send400('No search parameters provided.')
+			}
 			filteredData = this._filterData(filteredData, data)
-			if (filteredData.length === 0) return this._send404()
-			filteredData = group === 'one' ? filteredData[0] : filteredData
+			if (filteredData.length === 0) {
+				return this._send404()
+			}
+			filteredData = group === 'one' 
+				? filteredData[0] 
+				: filteredData
 		}
 		return this._sendData(filteredData)
 	}
 	
-	update(model, group, data = {}) {
+	update(modelName, group, data) {
 	
+		const target = this._getTarget(modelName)
+		
+		switch (group) {
+			case 'one':
+				if (!data.seq && !data.id) {
+					return this._send400('Identifying id or seq information required.')
+				}
+				const filters = {}
+				if (data.seq) filters.seq = data.seq
+				if (data.id) filters.seq = data.id
+				const filteredData = this._filterData(target.data, filters)
+				if (filteredData.length === 0) {
+					return this._send404()
+				}
+				Object.keys(data).forEach(key => {
+					filteredData[0][key] = data[key]
+				})
+				return this._writeAndSend(target, filteredData[0], 200)
+			case 'many':
+			case 'all':
+				let updated = 0
+				target.data.forEach((d) => {
+					Object.keys(data).forEach((key) => {
+						if (d[key] !== data[key]) {
+							d[key] = data[key]
+							updated++
+						}
+					})
+				})
+				return this._writeAndSend(target, { updated }, 200)
+			default:
+				return this._sendInvalidGroup(group)
+		}	
 	}
 	
 	delete(model, group, data = {}) {
