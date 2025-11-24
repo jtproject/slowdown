@@ -8,8 +8,6 @@ class Response {
 	_setContentType (type) {
 		this.headers['Content-Type'] = type
 	}
-
-
 }
 
 export class JSONResponse extends Response {
@@ -24,7 +22,7 @@ export class JSONResponse extends Response {
 	}
 
 	sendError () {
-		
+
 	}
 }
 
@@ -33,5 +31,13 @@ export class HTMLResponse extends Response {
 	constructor (res) {
 		super(res)
 		this._setContentType('text/html')
+	}
+
+	sendData () {
+
+	}
+
+	sendError () {
+
 	}
 }

@@ -8,9 +8,9 @@ export default class ServerRequest {
 		this.db = db || null
 		this._setStatusCode(500)
 		this._collectBodyData()
-		this.headers = {
-			'Content-Type': 'application/json'
-		}
+		// this.headers = {
+			// 'Content-Type': 'application/json'
+		// }
 	}
 	
 	_collectBodyData () {

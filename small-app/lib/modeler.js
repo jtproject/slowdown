@@ -26,6 +26,19 @@ export default class Modeler {
 		if (!result) return false
 		return result
 	}
+
+	addData (modelName, ...data) {
+		data.forEach((d) => {
+			this._getModelData(modelName).push(d)
+			this._getModel(modelName).count++
+			this._getModel(modelName).index++
+		})
+	}
+
+	removeData (modelName, filter) {
+		const data = this._getModelData(modelName)
+		
+	}
 	
 	/** 
 	 * === database controls */
@@ -56,8 +69,12 @@ export default class Modeler {
 		})
 	}
 	
-	_getModelData (modelName) {
+	_getModel (modelName) {
 		return this._activeDb.models[modelName]
+	}
+
+	_getModelData (modelName) {
+		return this._getModel(modelName).data
 	}
 	
 	_createModelTemplate (modelName, template = BLANK_MODEL) {
@@ -69,7 +86,7 @@ export default class Modeler {
 		const modelData = this._getModelData(modelName)
 		if (modelData.data) {
 			modelData.data.push(data)
-			this._getModelData(modelName).index++
+			this._getModel(modelName).index++
 		}
 	}
 	
