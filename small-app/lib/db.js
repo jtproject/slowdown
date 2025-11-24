@@ -30,7 +30,13 @@ class SmallDb {
 		[action](modelName, group, data)
 	}
 
-	validate () {}
+	validate (request) {
+		
+	}
+
+	isModel (modelName) {
+		return this._modeler.get(modelName) ? true : false
+	}
 }
 
 export default SmallDb

@@ -39,10 +39,10 @@ export default class Controller {
 		const timestamp = new Date()
 		const entry = {
 			...data,
-			id: 'coming-soon',
-			seq: model.index,
-			created: timestamp,
-			updated: timestamp
+			_id: 'coming-soon',
+			_seq: model.index,
+			_created: timestamp,
+			_updated: timestamp
 		}
 		model.data.push(entry)
 		model.index++
@@ -162,13 +162,13 @@ export default class Controller {
 	update(modelName, group, data) {
 	
 		const target = this._getTarget(modelName)
+		const filters = {}
 		
 		switch (group) {
 			case 'one':
 				if (!data.seq && !data.id) {
 					return this._send400('Identifying id or seq information required.')
 				}
-				const filters = {}
 				if (data.seq) filters.seq = data.seq
 				if (data.id) filters.seq = data.id
 				const filteredData = this._filterData(target.data, filters)
@@ -177,9 +177,23 @@ export default class Controller {
 				}
 				Object.keys(data).forEach(key => {
 					filteredData[0][key] = data[key]
+					filteredData[0].updated = new Date()
 				})
 				return this._writeAndSend(target, filteredData[0], 200)
 			case 'many':
+				// if (!data.seqs && !data.ids) {
+				// 	return this._send400('Identifying ids or seqs information array required.')
+				// }
+				// if (data.seqs) filters.seq = data.seq
+				// if (data.ids) filters.id = data.id
+				// const filteredData = this._filterData(target.data, filters)
+				// if (filteredData.length === 0) {
+				// 	return this._send404()
+				// }
+				// Object.keys(data).forEach(key => {
+				// 	filteredData[0][key] = data[key]
+				// })
+				// return this._writeAndSend(target, filteredData[0], 200)
 			case 'all':
 				let updated = 0
 				target.data.forEach((d) => {
@@ -196,7 +210,26 @@ export default class Controller {
 		}	
 	}
 	
-	delete(model, group, data = {}) {
-		return { test: 'data' }
+	delete(modelName, group, data) {
+
+		const target = this._getTarget(modelName)
+		const targetData = target.data
+
+		switch (group) {
+			case 'one':
+			case 'many':
+			case 'all':
+				const length = targetData.length
+				let deleted = 0
+				for (let i=0; i<length; i++) {
+					targetData.pop()
+					deleted++
+				}
+				target.count = targetData.length
+				return this._writeAndSend(target, { deleted }, 202)
+			default:
+				return this._sendInvalidGroup(group)
+		}
+
 	}
 }
