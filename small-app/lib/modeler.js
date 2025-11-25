@@ -27,17 +27,17 @@ export default class Modeler {
 		return result
 	}
 
-	addData (modelName, ...data) {
+	addData (model, ...data) {
 		data.forEach((d) => {
-			this._getModelData(modelName).push(d)
-			this._getModel(modelName).count++
-			this._getModel(modelName).index++
+			model.data.push(d)
+			model.count++
+			model.index++
 		})
 	}
 
-	removeData (model, filter) {
-		Object.keys(filter).forEach((f, i) => {
-			model.data = model.data.filter(d => d[f] !== filter[f])
+	deleteData (model, seqs) {
+		seqs.forEach(seq => {
+			model.data = model.data.filter(d => d._seq !== seq)
 		})
 		model.count = model.data.length
 	}

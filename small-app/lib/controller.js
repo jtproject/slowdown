@@ -243,18 +243,15 @@ export default class Controller {
 		
 		switch (group) {
 			case 'one':
-				deleted = results[0]
-				this._modeler.removeData(target, { _seq: deleted })
+				deleted = results.slice(0, 1)
 				break
 			case 'many':
-				deleted = results.join(', ')
-				results.forEach(result => {
-					this._modeler.removeData(target, { _seq: result })
-				})
+				deleted = results
 				break
 			default:
 				return this._sendInvalidGroup(group)
-		}
-		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted }` }, 200)
+			}
+		this._modeler.deleteData(target, deleted)
+		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted.join(', ') }` }, 200)
 	}
 }
