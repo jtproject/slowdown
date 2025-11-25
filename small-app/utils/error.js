@@ -13,3 +13,16 @@ export function generalErrorJson(message) {
 function visibleError(message) {
 	return `\n\n\x1b[34m${ message }\x1b[33m\n\n`
 }
+
+
+
+
+// new stuff
+
+export function valueError (message) {
+	return {type: 'ValueError', message	}
+}
+
+export function queryError (message) {
+	return { type: 'QueryError', message }
+}

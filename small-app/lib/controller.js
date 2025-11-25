@@ -71,13 +71,18 @@ export default class Controller {
 	}
 	
 	_filterData (data, filters) {
-		const filteredData = []
-		Object.keys(filters).forEach(key => {
-			if (key === '_seqs') {
-				filters[key].forEach(filter => {
-					filteredData.push(...data.filter(entry => entry._seq === filter))
-				})
-			}
+		if (!filters._seqs || !Array.isArray(filters._seqs)) filters._seqs = []
+		if (filters._seq) {
+			filters._seqs.push(filters._seq)
+			delete filters._seq
+		}
+		let filteredData = []
+		filters._seqs.forEach(seq => {
+			filteredData.push(...data.filter(entry => entry._seq === seq))
+		})
+		delete filters._seqs
+		Object.keys(filters).forEach(key => {			
+			filteredData = filteredData.filter(entry => entry[key] === filters[key])
 		})
 		return filteredData
 	}
@@ -219,17 +224,20 @@ export default class Controller {
 				return this._sendInvalidGroup(group)
 		}	
 	}
+
+	_deleteAll (target) {
+		const length = target.data.length
+		target.data = []
+		target.count = 0
+		return this._writeAndSend(target, { deleted: `All files (${ length } total.)` }, 202)
+	}
 	
 	delete(modelName, group, data) {
 
 		const target = this._getTarget(modelName)
-		const targetData = target.data
+		if (group === 'all') return this._deleteAll(target)
 		
-		if (group === 'all') {
-			target.data = []
-			target.count = 0
-			return this._writeAndSend(target, { deleted: `${ targetData.length } total` }, 202)
-		}
+		const targetData = target.data
 		
 		// ===
 		//Change this so that only the needed data makes it this far
@@ -239,19 +247,13 @@ export default class Controller {
 		// ===
 
 		if (results.length === 0) return this._send404()
-		let deleted
-		
-		switch (group) {
-			case 'one':
-				deleted = results.slice(0, 1)
-				break
-			case 'many':
-				deleted = results
-				break
-			default:
-				return this._sendInvalidGroup(group)
-			}
+		const deleted = group === 'one'
+			? results.slice(0, 1)
+			: group === 'many'
+				? results
+				: null
+		if (!deleted) return this._sendInvalidGroup(group)
 		this._modeler.deleteData(target, deleted)
-		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted.join(', ') }` }, 200)
+		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted.join(', ') }` }, 202)
 	}
 }

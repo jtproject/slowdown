@@ -1,5 +1,7 @@
 import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
+import { API_RULES } from '../config/rules.js'
 import RESPONSE_CODES from '../config/status.js'
+import { serializeForDatabase } from '../utils/data.js'
 import ServerRequest from './req.js'
 
 export default class ApiRequest extends ServerRequest {
@@ -14,6 +16,22 @@ export default class ApiRequest extends ServerRequest {
 		const ok = this.splitRoute()
 		if (!ok) return this._send404()
 		try {
+			const actionRules = API_RULES[this.routeParts[1]]._rules
+			const groupRules = API_RULES[this.routeParts[1]][this.routeParts[2]]
+			const methods = actionRules._rules.ALLOWED_METHODS
+			if (!methods.includes(this.req.method)) {
+				return this._sendError(405, 'Can\'t do this method here!')
+			}
+			const body = this.body
+			switch (groupRules.ID) {
+				case 'seq':
+					if (!body.seq) return //error
+				case 'seqs':
+				default:
+					return
+			}
+			serializeForDatabase(body)
+
 			const result = this.db.dispatch(...this.routeParts, this.body)
 			console.log(result)
 			if (result.ok === false) {

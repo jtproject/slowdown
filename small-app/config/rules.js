@@ -1,22 +1,45 @@
+import { ALLOWED_METHODS } from "./options.js";
+
 export const API_RULES = {
 	create: {
 		one: {},
 		many: {},
-		all: {}
+		all: {},
+		_rules: {
+			ALLOWED_METHODS: ['POST']
+		}
 	},
 	read: {
 		one: {},
 		many: {},
-		all: {}
+		all: {},
+		_rules: {
+			ALLOWED_METHODS: ['GET']
+		}
 	},
 	update: {
 		one: {},
 		many: {},
-		all: {}
+		all: {},
+		_rules: {
+			ALLOWED_METHODS: ['PATCH']
+		}
 	},
 	delete: {
-		one: {},
-		many: {},
-		all: {}
-	},
+		one: {
+			ID: 'seq',
+			DATA: 'none'
+		},
+		many: {
+			ID: 'seqs',
+			DATA: 'model'
+		},
+		all: {
+			ID: null,
+			DATA: null
+		},
+		_rules: {
+			ALLOWED_METHODS: ['DELETE']
+		}
+	}
 }
