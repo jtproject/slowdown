@@ -55,7 +55,7 @@ export default class Controller {
 	}
 
 	_getTarget (modelName) {
-		let target = this._modeler.get(modelName)
+		let target = this._modeler.getModel(modelName)
 		if (!target) {
 			this._modeler.new(modelName)
 			this._filer.write(modelName, BLANK_MODEL)
@@ -163,37 +163,38 @@ export default class Controller {
 	
 		const target = this._getTarget(modelName)
 		const filters = {}
-		
+		const filteredData = []
+
 		switch (group) {
 			case 'one':
 				if (!data.seq && !data.id) {
 					return this._send400('Identifying id or seq information required.')
 				}
-				if (data.seq) filters.seq = data.seq
-				if (data.id) filters.seq = data.id
-				const filteredData = this._filterData(target.data, filters)
+				if (data.seq) filters._seq = data.seq
+				if (data.id) filters._id = data.id
+				filteredData.push(...this._filterData(target.data, filters))
 				if (filteredData.length === 0) {
 					return this._send404()
 				}
 				Object.keys(data).forEach(key => {
 					filteredData[0][key] = data[key]
-					filteredData[0].updated = new Date()
+					filteredData[0]._updated = new Date()
 				})
 				return this._writeAndSend(target, filteredData[0], 200)
 			case 'many':
-				// if (!data.seqs && !data.ids) {
-				// 	return this._send400('Identifying ids or seqs information array required.')
-				// }
-				// if (data.seqs) filters.seq = data.seq
-				// if (data.ids) filters.id = data.id
-				// const filteredData = this._filterData(target.data, filters)
-				// if (filteredData.length === 0) {
-				// 	return this._send404()
-				// }
-				// Object.keys(data).forEach(key => {
-				// 	filteredData[0][key] = data[key]
-				// })
-				// return this._writeAndSend(target, filteredData[0], 200)
+				if (!data.seqs && !data.ids) {
+					return this._send400('Identifying ids or seqs information array required.')
+				}
+				if (data.seqs) filters.seq = data.seq
+				if (data.ids) filters.id = data.id
+				filteredData.push(...this._filterData(target.data, filters))
+				if (filteredData.length === 0) {
+					return this._send404()
+				}
+				Object.keys(data).forEach(key => {
+					filteredData[0][key] = data[key]
+				})
+				return this._writeAndSend(target, filteredData[0], 200)
 			case 'all':
 				let updated = 0
 				target.data.forEach((d) => {
@@ -214,9 +215,18 @@ export default class Controller {
 
 		const target = this._getTarget(modelName)
 		const targetData = target.data
+		const filters = {}
+		const filteredData = []
 
 		switch (group) {
 			case 'one':
+				filters._seq = data.seq
+				filteredData.push(...this._filterData(targetData, filters))
+				if (filteredData.length !== 0) {
+					this._modeler.removeData(modelName, filteredData[0])
+					return this._writeAndSend(target, { deleted: data.seq }, 200)
+				}
+				return this._send404()
 			case 'many':
 			case 'all':
 				const length = targetData.length

@@ -17,11 +17,11 @@ export default class Modeler {
 		this._populateModels(filer)
 	}
 
-	new (modelName, object = BLANK_MODEL) {
+	newModel (modelName, object = BLANK_MODEL) {
 		this._createModelTemplate(modelName, object)
 	}
 	
-	get(modelName) {
+	getModel (modelName) {
 		const result = this._getModelData(modelName)
 		if (!result) return false
 		return result
@@ -36,8 +36,11 @@ export default class Modeler {
 	}
 
 	removeData (modelName, filter) {
-		const data = this._getModelData(modelName)
-		
+		let data = this._getModelData(modelName)
+		Object.keys(filter).forEach((f, i) => {
+			data = data.filter(d => d[f] !== filter[f])
+		})
+		this._getModel(modelName).count = data.length
 	}
 	
 	/** 
@@ -89,34 +92,4 @@ export default class Modeler {
 			this._getModel(modelName).index++
 		}
 	}
-	
-	
-
-
-
-
-
-
-	
-	set(modelName, data) {
-		if (!this._getModelData(modelName)) {
-			// this._setPoint(point)
-			console.log('no model')
-			return
-		}
-		// this._insertModelData(point, data)
-		// return this._getPoint(point)
-		console.log('bye')
-	}
-
-	setMany(point, data) {
-		if (!Array.isArray(data)) generalErrorJson(`Data for setMany must be an array. Received ${ typeof(data) } instead.`)
-		const response = []
-		data.forEach((entry) => {
-			this._insertModelData(point, entry)
-			response.push(entry)
-		})
-		return response
-	}
-	
 }
