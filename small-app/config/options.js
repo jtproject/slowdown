@@ -24,3 +24,16 @@ export const API_ACTION_GROUPS = [
 	'many',
 	'all'
 ]
+
+export const MODEL_BUILTIN_IDENTIFIERS = [
+	'id',
+	'seq',
+	'ids',
+	'seqs'
+]
+
+export const MODEL_BUILTIN_ARGS = [
+	...MODEL_BUILTIN_IDENTIFIERS,
+	'created',
+	'updated'
+]

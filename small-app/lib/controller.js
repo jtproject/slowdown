@@ -1,5 +1,6 @@
 import { BLANK_API_RESPONSE, BLANK_MODEL } from "../config/objects.js"
 import RESPONSE_CODES from "../config/status.js"
+import { getIdentifiers, parseSeqNumbers, serializeForDatabase } from "../utils/data.js"
 
 export default class Controller {
 
@@ -70,10 +71,15 @@ export default class Controller {
 	}
 	
 	_filterData (data, filters) {
-		Object.entries(filters).forEach(([key, value]) => {
-			data = data.filter(entry => entry[key] === value)
+		const filteredData = []
+		Object.keys(filters).forEach(key => {
+			if (key === '_seqs') {
+				filters[key].forEach(filter => {
+					filteredData.push(...data.filter(entry => entry._seq === filter))
+				})
+			}
 		})
-		return data
+		return filteredData
 	}
 
 	_send400 (message) {
@@ -103,6 +109,7 @@ export default class Controller {
 	 * === public  actions */
 	
 	create(modelName, group, data) {
+		// serializeForDatabase(data)
 
 		// body required
 		if (data === '') {
@@ -217,31 +224,37 @@ export default class Controller {
 
 		const target = this._getTarget(modelName)
 		const targetData = target.data
-		const filters = {}
-		const filteredData = []
+		
+		if (group === 'all') {
+			target.data = []
+			target.count = 0
+			return this._writeAndSend(target, { deleted: `${ targetData.length } total` }, 202)
+		}
+		
+		// ===
+		//Change this so that only the needed data makes it this far
+		const identifiers = getIdentifiers(data)
+		serializeForDatabase(identifiers)
+		const results = parseSeqNumbers(this._filterData(targetData, identifiers)) // switch from identifiers
+		// ===
 
+		if (results.length === 0) return this._send404()
+		let deleted
+		
 		switch (group) {
 			case 'one':
-				filters._seq = data.seq
-				filteredData.push(...this._filterData(targetData, filters))
-				if (filteredData.length !== 0) {
-					this._modeler.removeData(target, { _seq: filteredData[0]._seq })
-					return this._writeAndSend(target, { deleted: data.seq }, 200)
-				}
-				return this._send404()
+				deleted = results[0]
+				this._modeler.removeData(target, { _seq: deleted })
+				break
 			case 'many':
-			case 'all':
-				const length = targetData.length
-				let deleted = 0
-				for (let i=0; i<length; i++) {
-					targetData.pop()
-					deleted++
-				}
-				target.count = targetData.length
-				return this._writeAndSend(target, { deleted }, 202)
+				deleted = results.join(', ')
+				results.forEach(result => {
+					this._modeler.removeData(target, { _seq: result })
+				})
+				break
 			default:
 				return this._sendInvalidGroup(group)
 		}
-
+		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted }` }, 200)
 	}
 }
