@@ -44,6 +44,7 @@ export default class Controller {
 			_created: timestamp,
 			_updated: timestamp
 		}
+
 		model.data.push(entry)
 		model.index++
 		model.count = model.data.length
@@ -59,7 +60,7 @@ export default class Controller {
 		if (!target) {
 			this._modeler.new(modelName)
 			this._filer.write(modelName, BLANK_MODEL)
-			target = this._modeler.get(modelName)
+			target = this._modeler.getModel(modelName)
 		}
 		return target
 	}
@@ -135,8 +136,9 @@ export default class Controller {
 				})
 				return this._writeAndSend(target, { ids })
 			case 'one':
+				console.log(target)
 				const entry = this._createEntry(target, data)
-				return this._writeAndSend(target, { id: entry.seq })
+				return this._writeAndSend(target, { id: entry._seq })
 			default:
 				return this._sendInvalidGroup(group)
 		}
@@ -223,7 +225,7 @@ export default class Controller {
 				filters._seq = data.seq
 				filteredData.push(...this._filterData(targetData, filters))
 				if (filteredData.length !== 0) {
-					this._modeler.removeData(modelName, filteredData[0])
+					this._modeler.removeData(target, { _seq: filteredData[0]._seq })
 					return this._writeAndSend(target, { deleted: data.seq }, 200)
 				}
 				return this._send404()

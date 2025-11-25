@@ -22,7 +22,7 @@ export default class Modeler {
 	}
 	
 	getModel (modelName) {
-		const result = this._getModelData(modelName)
+		const result = this._getModel(modelName)
 		if (!result) return false
 		return result
 	}
@@ -35,12 +35,11 @@ export default class Modeler {
 		})
 	}
 
-	removeData (modelName, filter) {
-		let data = this._getModelData(modelName)
+	removeData (model, filter) {
 		Object.keys(filter).forEach((f, i) => {
-			data = data.filter(d => d[f] !== filter[f])
+			model.data = model.data.filter(d => d[f] !== filter[f])
 		})
-		this._getModel(modelName).count = data.length
+		model.count = model.data.length
 	}
 	
 	/** 
