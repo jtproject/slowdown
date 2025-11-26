@@ -27,6 +27,14 @@ export function queryError (message) {
 	return { type: 'QueryError', message }
 }
 
+export function locationError (message) {
+	return { type: 'LocationError', message }
+}
+
 export function noIdError () {
 	return valueError('Proper sequence ID(s) not provided.')
+}
+
+export function noRouteError (route) {
+	return locationError(`/${ route } is not a valid route location.`)
 }

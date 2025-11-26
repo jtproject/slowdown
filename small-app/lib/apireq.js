@@ -2,7 +2,7 @@ import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
 import { API_RULES } from '../config/rules.js'
 import RESPONSE_CODES from '../config/status.js'
 import { serializeForDatabase } from '../utils/data.js'
-import { noIdError } from '../utils/error.js'
+import { noIdError, noRouteError } from '../utils/error.js'
 import ServerRequest from './req.js'
 import { JSONResponse } from './res.js'
 
@@ -15,18 +15,13 @@ export default class ApiRequest extends ServerRequest {
 
 	async handle () {
 		const response = new JSONResponse(this.res)
-		const exists = () => {
-			const raw = this.req.url.slice(5) || ''
-			const parts = raw.split('/').filter(Boolean)
-
-		}
+		const route = this.req.url || ''
+		if (!this._isValidRoute(route.slice(5))) response.fail(404, noRouteError(route))
 
 
 
 
-
-		const ok = this.splitRoute()
-		if (!ok) return this._send404()
+ 
 		try {
 			const actionRules = API_RULES[this.routeParts[1]]._rules
 			const groupRules = API_RULES[this.routeParts[1]][this.routeParts[2]]
@@ -58,18 +53,22 @@ export default class ApiRequest extends ServerRequest {
 		}
 	}
 
-	splitRoute () {
-		this.routeParts = parts
-		if (!this._isValidRoute(parts)) return false
-		return true
-	}
+	// splitRoute () {
+	// 	this.routeParts = parts
+	// 	if (!this._isValidRoute(parts)) return false
+	// 	return true
+	// }
 
-	_isValidRoute (arr) {
-		return (
-			arr &&
-			arr.length === 3 &&
-			API_ACTIONS.includes(arr[1]) &&
-			API_ACTION_GROUPS.includes(arr[2])
+	_isValidRoute (route) {
+		const splitRoute = route.split('/').filter(Boolean)
+		console.log(splitRoute)
+		
+		
+		return (false
+			// arr &&
+			// arr.length === 3 &&
+			// API_ACTIONS.includes(arr[1]) &&
+			// API_ACTION_GROUPS.includes(arr[2])
 		)
 	}
 
