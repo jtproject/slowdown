@@ -26,3 +26,7 @@ export function valueError (message) {
 export function queryError (message) {
 	return { type: 'QueryError', message }
 }
+
+export function noIdError () {
+	return valueError('Proper sequence ID(s) not provided.')
+}

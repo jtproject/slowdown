@@ -4,7 +4,14 @@ export const API_RULES = {
 	create: {
 		one: {},
 		many: {},
-		all: {},
+		all: {
+			_rules: {
+				FAIL: {
+					code: 401,
+					message: 'Only God can create all.'
+				}
+			}
+		},
 		_rules: {
 			ALLOWED_METHODS: ['POST']
 		}

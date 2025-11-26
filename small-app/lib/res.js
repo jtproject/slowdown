@@ -1,3 +1,5 @@
+import RESPONSE_CODES from "../config/status.js"
+
 class Response {
 
 	constructor (res) {
@@ -17,12 +19,26 @@ export class JSONResponse extends Response {
 		this._setContentType('application/json')
 	}
 
-	sendData () {
-
+	send (code, data) {
+		return {
+			...this._responseTemplate(true, code),
+			data
+		}
 	}
 
-	sendError () {
+	fail (code, error) {
+		return {
+			...this._responseTemplate(false, code),
+			error
+		}
+	}
 
+	_responseTemplate (ok, code) {
+		return {
+			ok,
+			code,
+			status: RESPONSE_CODES[code]
+		}
 	}
 }
 

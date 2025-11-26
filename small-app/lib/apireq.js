@@ -2,7 +2,9 @@ import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
 import { API_RULES } from '../config/rules.js'
 import RESPONSE_CODES from '../config/status.js'
 import { serializeForDatabase } from '../utils/data.js'
+import { noIdError } from '../utils/error.js'
 import ServerRequest from './req.js'
+import { JSONResponse } from './res.js'
 
 export default class ApiRequest extends ServerRequest {
 
@@ -12,6 +14,7 @@ export default class ApiRequest extends ServerRequest {
 	}
 
 	async handle () {
+		const response = new JSONResponse(this.res)
 		this.parseRoute()
 		const ok = this.splitRoute()
 		if (!ok) return this._send404()
@@ -25,7 +28,7 @@ export default class ApiRequest extends ServerRequest {
 			const body = this.body
 			switch (groupRules.ID) {
 				case 'seq':
-					if (!body.seq) return //error
+					if (!body.seq) return response.fail(400, noIdError())
 				case 'seqs':
 				default:
 					return
