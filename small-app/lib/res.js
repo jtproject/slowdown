@@ -20,17 +20,24 @@ export class JSONResponse extends Response {
 	}
 
 	send (code, data) {
-		return {
+		const response = {
 			...this._responseTemplate(true, code),
 			data
 		}
+		this._end(code, response)
 	}
 
 	fail (code, error) {
-		return {
+		const response = {
 			...this._responseTemplate(false, code),
 			error
 		}
+		this._end(code, response)
+	}
+
+	_end (code, response) {
+		this.res.writeHead(code, this.headers)
+		this.res.end(JSON.stringify(response))
 	}
 
 	_responseTemplate (ok, code) {

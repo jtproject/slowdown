@@ -1,5 +1,4 @@
 import { BLANK_DB, BLANK_MODEL } from '../config/objects.js'
-import { generalErrorJson } from '../utils/error.js'
 import { fileNameRoot } from '../utils/file.js'
 
 export default class Modeler {
