@@ -233,6 +233,7 @@ export default class Controller {
 	}
 	
 	delete(modelName, group, data) {
+		console.log(data)
 
 		const target = this._getTarget(modelName)
 		if (group === 'all') return this._deleteAll(target)

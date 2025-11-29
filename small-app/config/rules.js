@@ -1,5 +1,3 @@
-import { ALLOWED_METHODS } from "./options.js";
-
 export const API_RULES = {
 	create: {
 		one: {},

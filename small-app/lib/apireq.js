@@ -1,16 +1,38 @@
-import { API_ACTION_GROUPS, API_ACTIONS } from '../config/options.js'
-import { API_RULES } from '../config/rules.js'
-import RESPONSE_CODES from '../config/status.js'
-import { serializeForDatabase } from '../utils/data.js'
-import { noIdError, noRouteError, syntaxError } from '../utils/error.js'
 import ServerRequest from './req.js'
 import { JSONResponse } from './res.js'
+import { API_ACTION_GROUPS, API_ACTIONS} from '../config/options.js'
+import { API_RULES } from '../config/rules.js'
+import { serializeForDatabase } from '../utils/data.js'
+import { locationError, noIdError, noRouteError, syntaxError } from '../utils/error.js'
 
 export default class ApiRequest extends ServerRequest {
 
 	constructor (req, res, db) {
 		super(req, res, db)
 		this.req.on('end', () => this.handle())
+	}
+
+	_serialize (action, group) {
+		const dataRules = API_RULES[action][group]
+		const rules = dataRules._rules
+		const object = this._formatIdentifiers(dataRules.ID || '')
+		console.log(rules)
+		// if (rules.FAIL !== undefined) return { error: locationError(rules.FAIL.message), code: rules.FAIL.code }
+		return object
+	}
+
+	_formatIdentifiers (filter) {
+		const seqs = Array.isArray(this.body.seqs) ? this.body.seqs : []
+		const ids = Array.isArray(this.body.ids) ? this.body.ids : []
+		const filteredIdentifiers = {}
+		const identifiers = {	
+			seq: this.body.seq || seqs[0] || null, 
+			id: this.body.id || ids[0] || null, 
+			seqs: this.body.seq ? [...seqs, this.body.seq] : seqs, 
+			ids: this.body.id ? [...ids, this.body.id] : ids 
+		}
+		filter.split('/').filter(Boolean).forEach(value => filteredIdentifiers[value] = identifiers[value])
+		return filteredIdentifiers
 	}
 
 	async handle () {
@@ -24,39 +46,13 @@ export default class ApiRequest extends ServerRequest {
 		const allow = this._allowRoute(routeParts[1])
 		if (allow.error) return response.fail(405, allow.error)
 
-		serializeForDatabase(this.body)
-		return response.send(200, this.body)
-
-
- 
-		try {
-			const actionRules = API_RULES[this.routeParts[1]]._rules
-			const groupRules = API_RULES[this.routeParts[1]][this.routeParts[2]]
-			const methods = actionRules.ALLOWED_METHODS
-			if (!methods.includes(this.req.method)) {
-				return this._sendError(405, 'Can\'t do this method here!')
-			}
-			const body = this.body
-			switch (groupRules.ID) {
-				case 'seq':
-					if (!body.seq) return this._sendError(400, response.fail(400, noIdError()))
-				case 'seqs':
-				default:
-					break
-			}
-
-			const result = this.db.dispatch(...this.routeParts, this.body)
-			console.log(result)
-			if (result.ok === false) {
-				return this._sendError(result.code, result.error?.message ?? 'Unknown error occured in Controller.')
-			}
-			this._setData(result)
-			this._setStatusCode(result.code)
-			return this.end()
-		} 
-		catch (err) {
-			return this._sendError(500, err.message)
-		}
+		const serializedBody = this._serialize(...routeParts.slice(1))
+		if (serializedBody.error) return response.fail(serializedBody.code, serializedBody.error)
+		serializeForDatabase(serializedBody)
+	
+		const result = this.db.dispatch(...routeParts, serializedBody)
+		if (result.error) return response.fail(result.code, result.error) 
+		return response.send(result.code, result.data)
 	}
 
 	_allowRoute (action) {

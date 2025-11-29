@@ -1,3 +1,5 @@
+import { API_RULES } from "./rules.js"
+
 export const MIME_TYPES = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -10,14 +12,7 @@ export const MIME_TYPES = {
   '.svg': 'image/svg+xml'
 }
 
-export const ALLOWED_METHODS = {
-	'create': ['POST'],
-	'read': ['GET'],
-	'update': ['PATCH'],
-	'delete': ['DELETE']
-}
-
-export const API_ACTIONS = Object.keys(ALLOWED_METHODS)
+export const API_ACTIONS = Object.keys(API_RULES).filter(k => !k.startsWith('_'))
 
 export const API_ACTION_GROUPS = [
 	'one',
