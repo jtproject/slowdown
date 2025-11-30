@@ -10,7 +10,8 @@ export function parseSeqNumbers (array) {
 export function getIdentifiers (object) {
 	const identifiers = {}
 	Object.keys(object).forEach(key => {
-		if (MODEL_BUILTIN_IDENTIFIERS.includes(key) && object[key]) identifiers[key] = object[key]
+		const cleanKey = key.startsWith('_') ? key.slice(1) : key
+		if (MODEL_BUILTIN_IDENTIFIERS.includes(cleanKey)) identifiers[key] = object[key]
 	})
 	return identifiers
 }

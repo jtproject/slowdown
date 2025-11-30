@@ -233,20 +233,10 @@ export default class Controller {
 	}
 	
 	delete(modelName, group, data) {
-		console.log(data)
-
 		const target = this._getTarget(modelName)
 		if (group === 'all') return this._deleteAll(target)
-		
 		const targetData = target.data
-		
-		// ===
-		//Change this so that only the needed data makes it this far
-		const identifiers = getIdentifiers(data)
-		serializeForDatabase(identifiers)
-		const results = parseSeqNumbers(this._filterData(targetData, identifiers)) // switch from identifiers
-		// ===
-
+		const results = parseSeqNumbers(this._filterData(targetData, data))
 		if (results.length === 0) return this._send404()
 		const deleted = group === 'one'
 			? results.slice(0, 1)

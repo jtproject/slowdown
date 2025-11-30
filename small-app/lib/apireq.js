@@ -14,10 +14,10 @@ export default class ApiRequest extends ServerRequest {
 
 	_serialize (action, group) {
 		const dataRules = API_RULES[action][group]
-		const rules = dataRules._rules
+		const rules = dataRules._rules || {}
 		const object = this._formatIdentifiers(dataRules.ID || '')
 		console.log(rules)
-		// if (rules.FAIL !== undefined) return { error: locationError(rules.FAIL.message), code: rules.FAIL.code }
+		if (rules.FAIL !== undefined) return { error: locationError(rules.FAIL.message), code: rules.FAIL.code }
 		return object
 	}
 
