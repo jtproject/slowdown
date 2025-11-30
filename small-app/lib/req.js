@@ -1,16 +1,10 @@
 export default class ServerRequest {
 
 	constructor (req, res, db = null) {
-		this.data = null
-		this.error = null
 		this.req = req
 		this.res = res
 		this.db = db || null
-		this._setStatusCode(500)
 		this._collectBodyData()
-		this.headers = {
-			'Content-Type': 'application/json'
-		}
 	}
 	
 	_collectBodyData () {
@@ -29,34 +23,5 @@ export default class ServerRequest {
 				}
 			}
 		})
-	}
-
-	_setRoute (route) {
-		this.route = route
-	}
-
-	_setData (data) {		
-		this.data = data
-	}
-	
-	// Convenience: set HTTP status code
-	_setStatusCode (code) {
-		this.statusCode = code
-	}
-
-	// Redirect helper: sets 302 and location header
-	redirect (location) {
-		this._setStatusCode(302)
-		this.headers.Location = location
-		this.end()
-	}
-
-	end (overrideData = undefined) {
-		let body = overrideData || this.data
-		if (this.headers['Content-Type'] === 'application/json' && typeof body !== 'string') {
-			body = JSON.stringify(body || {})
-		}
-		this.res.writeHead(this.statusCode, this.headers)
-		this.res.end(body)
 	}
 }

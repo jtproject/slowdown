@@ -1,9 +1,9 @@
 import ServerRequest from './req.js'
 import { JSONResponse } from './res.js'
-import { API_ACTION_GROUPS, API_ACTIONS} from '../config/options.js'
+import { API_ACTION_GROUPS, API_ACTIONS, MODEL_BUILTIN_IDENTIFIERS} from '../config/options.js'
 import { API_RULES } from '../config/rules.js'
 import { serializeForDatabase } from '../utils/data.js'
-import { locationError, noIdError, noRouteError, syntaxError } from '../utils/error.js'
+import { locationError, noRouteError, syntaxError } from '../utils/error.js'
 
 export default class ApiRequest extends ServerRequest {
 
@@ -11,26 +11,59 @@ export default class ApiRequest extends ServerRequest {
 		super(req, res, db)
 		this.req.on('end', () => this.handle())
 	}
+	
+	_getRules (action, group) {
+		const info = API_RULES[action][group] || {}
+		const rules = dataRules._rules || {}
+		return [info, rules]
+	}
 
 	_serialize (action, group) {
-		const dataRules = API_RULES[action][group]
-		const rules = dataRules._rules || {}
-		const object = this._formatIdentifiers(dataRules.ID || '')
-		console.log(rules)
-		if (rules.FAIL !== undefined) return { error: locationError(rules.FAIL.message), code: rules.FAIL.code }
+		const [info, rules] = this._getRules(action, group)
+		if (rules.FAIL) return { error: locationError(rules.FAIL.message), code: rules.FAIL.code }
+		const object = this._getIdentifiers(info.ID || '')
+		this._appendBodyData(object, info.DATA)
+		serializeForDatabase(object)
 		return object
 	}
 
-	_formatIdentifiers (filter) {
-		const seqs = Array.isArray(this.body.seqs) ? this.body.seqs : []
-		const ids = Array.isArray(this.body.ids) ? this.body.ids : []
-		const filteredIdentifiers = {}
-		const identifiers = {	
+	_stripIdentifiers (object) {
+		const filteredObject = {}
+		Object.keys(object).forEach(key => {
+			if (
+				!MODEL_BUILTIN_IDENTIFIERS.includes(key)
+				&& !MODEL_BUILTIN_IDENTIFIERS.includes(key.slice(1))
+			) filteredObject[key] = object[key]
+		})
+		return filteredObject
+	}
+
+	_appendBodyData (object, filter) {
+		if (filter === 'none') return
+		const body = this._stripIdentifiers(this.body)
+		Object.keys(body).forEach(key => object[key] = body[key])
+	}
+
+	_seqsAndIds () {
+		return [
+			Array.isArray(this.body.seqs) ? this.body.seqs : [],
+			Array.isArray(this.body.ids) ? this.body.ids : []
+		]
+	}
+
+	_identifierList () {
+		const [seqs, ids] = this._seqsAndIds()
+		return {	
 			seq: this.body.seq || seqs[0] || null, 
 			id: this.body.id || ids[0] || null, 
 			seqs: this.body.seq ? [...seqs, this.body.seq] : seqs, 
 			ids: this.body.id ? [...ids, this.body.id] : ids 
 		}
+	}
+
+	_getIdentifiers (filter) {
+		const filteredIdentifiers = {}
+		const identifiers = this._identifierList()
 		filter.split('/').filter(Boolean).forEach(value => filteredIdentifiers[value] = identifiers[value])
 		return filteredIdentifiers
 	}
@@ -48,7 +81,6 @@ export default class ApiRequest extends ServerRequest {
 
 		const serializedBody = this._serialize(...routeParts.slice(1))
 		if (serializedBody.error) return response.fail(serializedBody.code, serializedBody.error)
-		serializeForDatabase(serializedBody)
 	
 		const result = this.db.dispatch(...routeParts, serializedBody)
 		if (result.error) return response.fail(result.code, result.error) 
@@ -78,18 +110,4 @@ export default class ApiRequest extends ServerRequest {
 		if (error.tips.length > 0) return { error }
 		return true
 	}
-
-	// _setContentType () {
-	// 	this.headers['Content-Type'] = 'application/json'
-	// }
-
-	// _sendError(code, message) {
-	// 	this._setStatusCode(code)
-	// 	this._setData({ ok: false, code, status: RESPONSE_CODES[code], error: message })
-	// 	return this.end()
-	// }
-
-	// _send404 () {
-	// 	this._sendError(404, `Route not found: /${ String(this.route) }`)
-	// }
 }
