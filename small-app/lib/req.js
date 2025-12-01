@@ -16,12 +16,9 @@ export default class ServerRequest {
 		
 		this.req.on('end', () => {
 			if (this.body) {
-				try {
-					this.body = JSON.parse(this.body)
-				} catch (err) {
-					this.error = new Error('Failed to parse request body as JSON')
-				}
+				this.body = JSON.parse(this.body)
 			}
+			this._handle()
 		})
 	}
 }

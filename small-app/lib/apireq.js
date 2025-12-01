@@ -9,7 +9,6 @@ export default class ApiRequest extends ServerRequest {
 
 	constructor (req, res, db) {
 		super(req, res, db)
-		this.req.on('end', () => this.handle())
 	}
 	
 	_getRules (action, group) {
@@ -68,7 +67,7 @@ export default class ApiRequest extends ServerRequest {
 		return filteredIdentifiers
 	}
 
-	async handle () {
+	async _handle () {
 		const response = new JSONResponse(this.res)
 
 		const routeParts = this.req.url.slice(5).split('/').filter(Boolean)

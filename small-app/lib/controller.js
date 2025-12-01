@@ -1,6 +1,15 @@
 import { BLANK_MODEL } from "../config/objects.js"
 import { parseSeqNumbers } from "../utils/data.js"
 import { queryError, valueError } from "../utils/error.js"
+import dotenv from 'dotenv'
+
+dotenv.config()
+const multiplier = process.env.BASE_36_MULTIPLIER
+const subtractor = process.env.BASE_36_SUBTRACTOR
+
+function base36Timestamp () {
+	return (Date.now() * multiplier - subtractor).toString(36)
+}
 
 export default class Controller {
 
@@ -13,7 +22,7 @@ export default class Controller {
 	_newEntry (model, data) {
 		return {
 			...data,
-			_id: 'coming-soon',
+			_id: base36Timestamp(),
 			_seq: model.index,
 			_created: this._timestamp,
 			_updated: this._timestamp
@@ -43,7 +52,7 @@ export default class Controller {
 	_getTarget (modelName) {
 		let target = this._modeler.getModel(modelName)
 		if (!target) {
-			this._modeler.new(modelName)
+			this._modeler.newModel(modelName)
 			this._filer.write(modelName, BLANK_MODEL)
 			target = this._modeler.getModel(modelName)
 		}
@@ -119,9 +128,8 @@ export default class Controller {
 				})
 				return this._writeAndSend(target, { ids })
 			case 'one':
-				console.log(target)
 				const entry = this._createEntry(target, data)
-				return this._writeAndSend(target, { id: entry._seq })
+				return this._writeAndSend(target, { id: entry._id })
 			default:
 				return this._sendInvalidGroup(group)
 		}

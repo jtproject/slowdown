@@ -1,8 +1,19 @@
 export const API_RULES = {
 	create: {
-		one: {},
-		many: {},
+		one: {
+			ID: null,
+			DATA: 'all'
+		},
+		many: {
+			ID: null,
+			DATA: 'all',
+			_rules: {
+				TYPE: 'array'
+			}
+		},
 		all: {
+			ID: null,
+			DATA: null,
 			_rules: {
 				FAIL: {
 					code: 401,
