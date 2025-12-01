@@ -7,6 +7,23 @@ export default class Controller {
 	constructor (filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
+		this._timestamp = new Date()
+	}
+
+	_newEntry (model, data) {
+		return {
+			...data,
+			_id: 'coming-soon',
+			_seq: model.index,
+			_created: this._timestamp,
+			_updated: this._timestamp
+		}
+	}
+
+	_insertEntry (model, entry) {
+		model.data.push(entry)
+		model.index++
+		model.count = model.data.length
 	}
 
 	_createEntry (model, data) {
@@ -14,18 +31,8 @@ export default class Controller {
 			data = data[0]
 			console.warn('Array sent to /one route.')
 		}
-		const timestamp = new Date()
-		const entry = {
-			...data,
-			_id: 'coming-soon',
-			_seq: model.index,
-			_created: timestamp,
-			_updated: timestamp
-		}
-
-		model.data.push(entry)
-		model.index++
-		model.count = model.data.length
+		const entry = this._newEntry(model, data)
+		this._insertEntry(model, entry)
 		return entry
 	}
 
