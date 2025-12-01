@@ -1,35 +1,12 @@
-import { BLANK_API_RESPONSE, BLANK_MODEL } from "../config/objects.js"
-import RESPONSE_CODES from "../config/status.js"
-import { getIdentifiers, parseSeqNumbers, serializeForDatabase } from "../utils/data.js"
+import { BLANK_MODEL } from "../config/objects.js"
+import { parseSeqNumbers } from "../utils/data.js"
+import { queryError, valueError } from "../utils/error.js"
 
 export default class Controller {
 
 	constructor (filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
-		this.response = BLANK_API_RESPONSE()
-	}
-
-	/*
-	 * === response methods */
-
-	_dispatch (ok, code) {
-		this.response.ok = ok
-		this.response.code = code
-		this.response.status = RESPONSE_CODES[code]
-		return this.response
-	}
-
-	_sendError (error, code = 500) {
-		delete this.response.data
-		this.response.error = error
-		return this._dispatch(false, code)
-	}
-
-	_sendData (data, code = 200) {
-		delete this.response.error
-		this.response.data = data
-		return this._dispatch(true, code)
 	}
 
 	_createEntry (model, data) {
@@ -88,30 +65,17 @@ export default class Controller {
 	}
 
 	_send400 (message) {
-		return this._sendError({
-			type: 'ValueError',
-			message
-		}, 400)
-	}
-
-	_sendInvalidGroup (group) {
-		return this._send400(`Invalid group, '/${ group }', was requested.`)
+		return { error: valueError(message), code: 400 }
 	}
 
 	_send404 () {
-		return this._sendError({
-			type: 'QueryError',
-			message: 'No data found.'
-		}, 404)
+		return { error: queryError('No data found matching the search params.'), code: 404 }
 	}
 
 	_writeAndSend (target, data, code = 201) {			
 		this._writeFile(target)
-		return this._sendData(data, code)
+		return { code, data }
 	}
-
-	/**
-	 * === public  actions */
 	
 	create(modelName, group, data) {
 		// serializeForDatabase(data)

@@ -14,7 +14,7 @@ export default class ApiRequest extends ServerRequest {
 	
 	_getRules (action, group) {
 		const info = API_RULES[action][group] || {}
-		const rules = dataRules._rules || {}
+		const rules = info._rules || {}
 		return [info, rules]
 	}
 
