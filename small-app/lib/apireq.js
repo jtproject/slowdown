@@ -108,7 +108,7 @@ export default class ApiRequest extends ServerRequest {
       }
     }
 
-    const identifiers = this._extractIdentifiers(info.ID || '')
+    const identifiers = this._extractIdentifiers(info.ID || null)
     this._mergeBodyData(identifiers, info.DATA)
 
     serializeForDatabase(identifiers)
