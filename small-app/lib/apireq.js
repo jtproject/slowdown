@@ -4,6 +4,7 @@ import { API_ACTION_GROUPS, API_ACTIONS, MODEL_BUILTIN_IDENTIFIERS } from '../co
 import { API_RULES } from '../config/rules.js'
 import { serializeForDatabase } from '../utils/data.js'
 import { locationError, noRouteError, syntaxError } from '../utils/error.js'
+import { extractIdentifiers } from '../utils/identifiers.js'
 
 export default class ApiRequest extends ServerRequest {
 
@@ -108,7 +109,7 @@ export default class ApiRequest extends ServerRequest {
       }
     }
 
-    const identifiers = this._extractIdentifiers(info.ID || null)
+    const identifiers = extractIdentifiers(info.ID || null, this.body)
     this._mergeBodyData(identifiers, info.DATA)
 
     serializeForDatabase(identifiers)
@@ -143,48 +144,5 @@ export default class ApiRequest extends ServerRequest {
     })
 
     return result
-  }
-
-  /*
-    ----------------------------
-    IDENTIFIER EXTRACTION
-    ----------------------------
-  */
-
-  _extractIdentifiers (filterString) {
-    const identifiers = this._buildIdentifierList()
-    const filterKeys = filterString.split('/').filter(Boolean)
-
-    const filtered = {}
-    filterKeys.forEach(key => {
-      if (key in identifiers) filtered[key] = identifiers[key]
-    })
-
-    return filtered
-  }
-
-  _buildIdentifierList () {
-    const [seqs, ids] = this._getSeqsAndIds()
-
-    const seq = this.body.seq !== undefined
-      ? this.body.seq
-      : (seqs[0] ?? null)
-
-    const id = this.body.id !== undefined
-      ? this.body.id
-      : (ids[0] ?? null)
-
-    return {
-      seq,
-      id,
-      seqs: seq !== null ? [...new Set([seq, ...seqs])] : seqs,
-      ids: id !== null ? [...new Set([id, ...ids])] : ids
-    }
-  }
-
-  _getSeqsAndIds () {
-    const seqs = Array.isArray(this.body.seqs) ? [...this.body.seqs] : []
-    const ids = Array.isArray(this.body.ids) ? [...this.body.ids] : []
-    return [seqs, ids]
   }
 }
