@@ -109,12 +109,12 @@ export default class ApiRequest extends ServerRequest {
       }
     }
 
-    const identifiers = extractIdentifiers(info.ID || null, this.body)
-    this._mergeBodyData(identifiers, info.DATA)
+    const data = extractIdentifiers(info.ID || null, this.body)
+    this._mergeBodyData(data, info.DATA)
 
-    serializeForDatabase(identifiers)
+    serializeForDatabase(data)
 
-    return identifiers
+    return data
   }
 
   /*
@@ -124,7 +124,7 @@ export default class ApiRequest extends ServerRequest {
   */
 
   _mergeBodyData (target, filter) {
-    if (filter === 'none') return
+    if (!filter) return
 
     const body = this._stripReservedFields(this.body)
     Object.keys(body).forEach(key => {

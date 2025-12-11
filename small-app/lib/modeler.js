@@ -21,9 +21,7 @@ export default class Modeler {
 	}
 	
 	getModel (modelName) {
-		const result = this._getModel(modelName)
-		if (!result) return false
-		return result
+		return this._getModel(modelName) || false
 	}
 
 	addData (model, ...data) {
@@ -71,7 +69,7 @@ export default class Modeler {
 	}
 	
 	_getModel (modelName) {
-		return this._activeDb.models[modelName]
+		return this._activeDb.models[modelName] || false
 	}
 
 	_getModelData (modelName) {
@@ -79,7 +77,7 @@ export default class Modeler {
 	}
 	
 	_createModelTemplate (modelName, template = BLANK_MODEL) {
-		this._activeDb.models[modelName] = template
+		this._activeDb.models[modelName] = typeof(template) !== 'function' ? template : template(modelName)
 		this._activeDb.modelCount++
 	}
 	

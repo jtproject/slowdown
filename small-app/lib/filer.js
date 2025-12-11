@@ -8,8 +8,8 @@ import { capitalFirstLetterOnly } from '../utils/string.js'
 export default class Filer {
 	
 	constructor(dirName) {
-		this._topDir = dirName
 		this.content = []
+		this._topDir = dirName
 		this._setActiveDir(dirName, true)
 		this._setActiveFile(null)
 	}

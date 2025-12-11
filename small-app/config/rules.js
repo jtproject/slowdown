@@ -44,7 +44,7 @@ export const API_RULES = {
 	delete: {
 		one: {
 			ID: 'seq',
-			DATA: 'none'
+			DATA: null
 		},
 		many: {
 			ID: 'seqs',

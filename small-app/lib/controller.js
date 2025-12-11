@@ -1,229 +1,240 @@
 import { BLANK_MODEL } from "../config/objects.js"
-import { parseSeqNumbers } from "../utils/data.js"
-import { queryError, valueError } from "../utils/error.js"
-import dotenv from 'dotenv'
+import { valueError, queryError } from "../utils/error.js"
+import dotenv from "dotenv"
 
 dotenv.config()
 const multiplier = process.env.BASE_36_MULTIPLIER
 const subtractor = process.env.BASE_36_SUBTRACTOR
 
-function base36Timestamp () {
-	return (Date.now() * multiplier - subtractor).toString(36)
-}
+const base36 = () =>
+	(Date.now() * multiplier - subtractor).toString(36)
 
 export default class Controller {
 
-	constructor (filer, modeler) {
+	constructor(filer, modeler) {
 		this._filer = filer
 		this._modeler = modeler
-		this._timestamp = new Date()
 	}
 
-	_newEntry (model, data) {
-		return {
-			...data,
-			_id: base36Timestamp(),
-			_seq: model.index,
-			_created: this._timestamp,
-			_updated: this._timestamp
+	/* ----------------------------------------------------------
+	 *  INTERNAL HELPERS
+	 * -------------------------------------------------------- */
+
+	_getModel(name) {
+		let model = this._modeler.getModel(name)
+		if (!model) {
+			this._modeler.newModel(name)
+			this._filer.write(name, BLANK_MODEL(name))
+			model = this._modeler.getModel(name)
 		}
+		return model
 	}
 
-	_insertEntry (model, entry) {
-		model.data.push(entry)
-		model.index++
-		model.count = model.data.length
-	}
-
-	_createEntry (model, data) {
-		if (Array.isArray(data)) {
-			data = data[0]
-			console.warn('Array sent to /one route.')
-		}
-		const entry = this._newEntry(model, data)
-		this._insertEntry(model, entry)
-		return entry
-	}
-
-	_writeFile (model) {
+	_write(model) {
 		this._filer.write(model.name, model)
 	}
 
-	_getTarget (modelName) {
-		let target = this._modeler.getModel(modelName)
-		if (!target) {
-			this._modeler.newModel(modelName)
-			this._filer.write(modelName, BLANK_MODEL)
-			target = this._modeler.getModel(modelName)
+	/* ----------------------------------------------------------
+	 *  ENTRY CREATION
+	 * -------------------------------------------------------- */
+
+	_buildEntry(model, data) {
+		const now = new Date()
+		return {
+			...data,
+			_id: base36(),
+			_seq: model.index++,
+			_created: now,
+			_updated: now
 		}
-		return target
 	}
-	
-	_getTargetData (modelName) {
-		return this._getTarget(modelName).data
+
+	_insertEntry(model, entry) {
+		model.data.push(entry)
+		model.count = model.data.length
 	}
-	
-	_filterData (data, filters) {
-		if (!filters._seqs || !Array.isArray(filters._seqs)) filters._seqs = []
-		if (filters._seq) {
-			filters._seqs.push(filters._seq)
-			delete filters._seq
+
+	/* ----------------------------------------------------------
+	 *  FILTERING
+	 * -------------------------------------------------------- */
+
+	_filter(entries, filters) {
+		if (!filters || typeof filters !== "object") return entries
+
+		let result = [...entries]
+
+		// Identity filters
+		const ids = []
+		if (filters._id) ids.push(filters._id)
+		if (filters._ids) ids.push(...filters._ids)
+
+		const seqs = []
+		if (filters._seq !== undefined) seqs.push(filters._seq)
+		if (filters._seqs) seqs.push(...filters._seqs)
+
+		if (ids.length > 0) {
+			result = result.filter(e => ids.includes(e._id))
 		}
-		let filteredData = []
-		filters._seqs.forEach(seq => {
-			filteredData.push(...data.filter(entry => entry._seq === seq))
+
+		if (seqs.length > 0) {
+			result = result.filter(e => seqs.includes(e._seq))
+		}
+
+		// Field matching (non-identity keys)
+		Object.entries(filters).forEach(([key, val]) => {
+			if (key.startsWith("_")) return
+			result = result.filter(e => e[key] === val)
 		})
-		delete filters._seqs
-		Object.keys(filters).forEach(key => {			
-			filteredData = filteredData.filter(entry => entry[key] === filters[key])
+
+		return result
+	}
+
+	/* ----------------------------------------------------------
+	 *  UPDATING
+	 * -------------------------------------------------------- */
+
+	_applyUpdate(entries, updates) {
+		const now = new Date()
+		entries.forEach(entry => {
+			Object.entries(updates).forEach(([key, val]) => {
+				entry[key] = val
+			})
+			entry._updated = now
 		})
-		return filteredData
 	}
 
-	_send400 (message) {
-		return { error: valueError(message), code: 400 }
+	/* ----------------------------------------------------------
+	 *  ERROR HELPERS
+	 * -------------------------------------------------------- */
+
+	_err400(msg) {
+		return { code: 400, error: valueError(msg) }
 	}
 
-	_send404 () {
-		return { error: queryError('No data found matching the search params.'), code: 404 }
+	_err404() {
+		return { code: 404, error: queryError("No matching records found.") }
 	}
 
-	_writeAndSend (target, data, code = 201) {			
-		this._writeFile(target)
+	_invalidGroup(group) {
+		return this._err400(`Invalid group '${group}'. Use one | many | all.`)
+	}
+
+	_ok(code, data) {
 		return { code, data }
 	}
-	
+
+	/* ----------------------------------------------------------
+	 *  PUBLIC METHODS
+	 * -------------------------------------------------------- */
+
 	create(modelName, group, data) {
-		// serializeForDatabase(data)
+		const model = this._getModel(modelName)
 
-		// body required
-		if (data === '') {
-			return this._sendError({
-				type: 'ValueError',
-				message: 'No Data provided.'
-			}, 400)
+		if (group === "one") {
+			const entry = this._buildEntry(model, data)
+			this._insertEntry(model, entry)
+			this._write(model)
+			return this._ok(201, entry)
 		}
 
-		// 'all' not allowed
-		if (group === 'all') {
-			return this._sendError({
-				type: 'FatalError',
-				message: 'Only God can create all.'
-			}, 401)
-		}
-
-		// grab the model being used
-		const target = this._getTarget(modelName)
-
-		// route to the proper set of instructions
-		switch (group) {
-			case 'many':
-				if (!Array.isArray(data)) {
-					return sendError('Data provided must be an array.')
-				}
-				const ids = []
-				data.forEach((d) => {
-					const entry = this._createEntry(target, d)
-					ids.push(entry.seq)
-				})
-				return this._writeAndSend(target, { ids })
-			case 'one':
-				const entry = this._createEntry(target, data)
-				return this._writeAndSend(target, { id: entry._id })
-			default:
-				return this._sendInvalidGroup(group)
-		}
-	}
-
-	read(modelName, group, data) {
-		let filteredData = this._getTargetData(modelName)
-		if (group !== 'all') {
-			if (data === '') {
-				return this._send400('No search parameters provided.')
+		if (group === "many") {
+			if (!Array.isArray(data)) {
+				return this._err400("Data must be an array for 'many'.")
 			}
-			filteredData = this._filterData(filteredData, data)
-			if (filteredData.length === 0) {
-				return this._send404()
-			}
-			filteredData = group === 'one' 
-				? filteredData[0] 
-				: filteredData
+			const entries = data.map(d => {
+				const e = this._buildEntry(model, d)
+				this._insertEntry(model, e)
+				return e
+			})
+			this._write(model)
+			return this._ok(201, entries)
 		}
-		return this._sendData(filteredData)
-	}
-	
-	update(modelName, group, data) {
-	
-		const target = this._getTarget(modelName)
-		const filters = {}
-		const filteredData = []
 
-		switch (group) {
-			case 'one':
-				if (!data.seq && !data.id) {
-					return this._send400('Identifying id or seq information required.')
-				}
-				if (data.seq) filters._seq = data.seq
-				if (data.id) filters._id = data.id
-				filteredData.push(...this._filterData(target.data, filters))
-				if (filteredData.length === 0) {
-					return this._send404()
-				}
-				Object.keys(data).forEach(key => {
-					filteredData[0][key] = data[key]
-					filteredData[0]._updated = new Date()
-				})
-				return this._writeAndSend(target, filteredData[0], 200)
-			case 'many':
-				if (!data.seqs && !data.ids) {
-					return this._send400('Identifying ids or seqs information array required.')
-				}
-				if (data.seqs) filters.seq = data.seq
-				if (data.ids) filters.id = data.id
-				filteredData.push(...this._filterData(target.data, filters))
-				if (filteredData.length === 0) {
-					return this._send404()
-				}
-				Object.keys(data).forEach(key => {
-					filteredData[0][key] = data[key]
-				})
-				return this._writeAndSend(target, filteredData[0], 200)
-			case 'all':
-				let updated = 0
-				target.data.forEach((d) => {
-					Object.keys(data).forEach((key) => {
-						if (d[key] !== data[key]) {
-							d[key] = data[key]
-							updated++
-						}
-					})
-				})
-				return this._writeAndSend(target, { updated }, 200)
-			default:
-				return this._sendInvalidGroup(group)
-		}	
+		return this._invalidGroup(group)
 	}
 
-	_deleteAll (target) {
-		const length = target.data.length
-		target.data = []
-		target.count = 0
-		return this._writeAndSend(target, { deleted: `All files (${ length } total.)` }, 202)
+	read(modelName, group, filters) {
+		const model = this._getModel(modelName)
+
+		if (group === "all") {
+			return this._ok(200, model.data)
+		}
+
+		const matches = this._filter(model.data, filters)
+		if (matches.length === 0) return this._err404()
+
+		if (group === "one") {
+			return this._ok(200, matches[0])
+		}
+
+		if (group === "many") {
+			return this._ok(200, matches)
+		}
+
+		return this._invalidGroup(group)
 	}
-	
-	delete(modelName, group, data) {
-		const target = this._getTarget(modelName)
-		if (group === 'all') return this._deleteAll(target)
-		const targetData = target.data
-		const results = parseSeqNumbers(this._filterData(targetData, data))
-		if (results.length === 0) return this._send404()
-		const deleted = group === 'one'
-			? results.slice(0, 1)
-			: group === 'many'
-				? results
-				: null
-		if (!deleted) return this._sendInvalidGroup(group)
-		this._modeler.deleteData(target, deleted)
-		return this._writeAndSend(target, { deleted: `seq(s) ${ deleted.join(', ') }` }, 202)
+
+	update(modelName, group, payload) {
+		const model = this._getModel(modelName)
+
+		const { filters, updates } = payload
+		if (!updates || typeof updates !== "object") {
+			return this._err400("Updates required.")
+		}
+
+		if (group === "all") {
+			this._applyUpdate(model.data, updates)
+			this._write(model)
+			return this._ok(200, { updated: model.data.length })
+		}
+
+		const matches = this._filter(model.data, filters)
+		if (matches.length === 0) return this._err404()
+
+		if (group === "one") {
+			this._applyUpdate([matches[0]], updates)
+			this._write(model)
+			return this._ok(200, matches[0])
+		}
+
+		if (group === "many") {
+			this._applyUpdate(matches, updates)
+			this._write(model)
+			return this._ok(200, { updated: matches.length })
+		}
+
+		return this._invalidGroup(group)
+	}
+
+	delete(modelName, group, identifiers) {
+		const model = this._getModel(modelName)
+
+		if (group === "all") {
+			const count = model.data.length
+			model.data = []
+			model.count = 0
+			this._write(model)
+			return this._ok(202, { deleted: 'all', count })
+		}
+
+		const matches = this._filter(model.data, identifiers)
+		if (matches.length === 0) return this._err404()
+
+		if (group === "one") {
+			const id = matches[0]._id
+			model.data = model.data.filter(e => e._id !== id)
+			this._write(model)
+			return this._ok(202, { deleted: id, count: 1 })
+		}
+
+		if (group === "many") {
+			const ids = new Set(matches.map(e => e._id))
+			const count = ids.size
+			model.data = model.data.filter(e => !ids.has(e._id))
+			this._write(model)
+			return this._ok(202, { deleted: Array.from(ids).join(', ') ,count })
+		}
+
+		return this._invalidGroup(group)
 	}
 }
