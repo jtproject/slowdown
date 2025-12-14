@@ -30,6 +30,10 @@ export function queryError (message) {
 	return error('QueryError', message)
 }
 
+export function unknownError () {
+	return error('UnknownError', 'An unknown error has occurred.')
+}
+
 export function locationError (message) {
 	return error('LocationError', message)
 }

@@ -20,18 +20,17 @@ export default class ApiRequest extends ServerRequest {
 
   async _handle () {
     const response = new JSONResponse(this.res)
-
     const routeParts = this._parseRoute(this.req.url)
+		// check for valid API route
     const validation = this._validateRoute(routeParts)
-
     if (validation.error) return response.fail(404, validation.error)
-
+		// check req method with route
     const allowResult = this._checkAllowedMethod(routeParts.action)
     if (allowResult.error) return response.fail(405, allowResult.error)
-
+		// prepare body data to rule specs
     const serialized = this._serializeBody(routeParts.action, routeParts.group)
     if (serialized.error) return response.fail(serialized.code, serialized.error)
-
+console.log(serialized)
     const result = this.db.dispatch(
       routeParts.model,
       routeParts.action,
@@ -58,7 +57,7 @@ export default class ApiRequest extends ServerRequest {
 
   _checkAllowedMethod (action) {
     action = action.toLowerCase()
-    const allowed = API_RULES[action]._rules.ALLOWED_METHODS
+    const allowed = API_RULES[action].ALLOWED_METHODS
 
     if (!allowed.includes(this.req.method)) {
       return { error: syntaxError(`Only ${ allowed.join(', ') } methods can be used on '${ action }' routes.`) }
@@ -93,27 +92,23 @@ export default class ApiRequest extends ServerRequest {
     ----------------------------
   */
 
-  _getRules (action, group) {
-    const info = API_RULES[action][group] || {}
-    const rules = info._rules || {}
-    return [info, rules]
-  }
-
   _serializeBody (action, group) {
-    const [info, rules] = this._getRules(action, group)
-
-    if (rules.FAIL) {
-      return {
-        error: locationError(rules.FAIL.message),
+    const rules = API_RULES[action] || {}
+		if (rules.FAIL && rules.FAIL[group]) {
+			return {
+        error: locationError(rules.FAIL[group].message),
         code: rules.FAIL.code
       }
     }
-
-    const data = extractIdentifiers(info.ID || null, this.body)
-    this._mergeBodyData(data, info.DATA)
-
+		const identifiers = rules.ID
+			.split('/')
+			.filter(Boolean)
+			.map(i => (
+				group === 'many' ? i + 's' : i
+			))
+    const data = extractIdentifiers(this.body, identifiers)
+    this._mergeBodyData(data, rules.DATA)
     serializeForDatabase(data)
-
     return data
   }
 

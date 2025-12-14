@@ -1,37 +1,100 @@
-export function extractIdentifiers (filterString, body) {
-	if (!filterString) return {}
-	const identifiers = buildIdentifierList(body)
-	const filterKeys = filterString.split('/').filter(Boolean)
+import { MODEL_BUILTIN_IDENTIFIERS } from "../config/options.js"
 
-	const filtered = {}
-	filterKeys.forEach(key => {
-		if (key in identifiers) filtered[key] = identifiers[key]
-	})
+export function extractIdentifiers(data, identifiers) {
+	if (identifiers === null) return {}
 
-	return filtered
-}
+	const filteredData = filterBuiltinIdentifiers(data)
 
-function buildIdentifierList (body) {
-	const [seqs, ids] = getSeqsAndIds(body)
-
-	const seq = body.seq !== undefined
-		? body.seq
-		: (seqs[0] ?? null)
-
-	const id = body.id !== undefined
-		? body.id
-		: (ids[0] ?? null)
-
-	return {
-		seq,
-		id,
-		seqs: seq !== null ? [...new Set([seq, ...seqs])] : seqs,
-		ids: id !== null ? [...new Set([id, ...ids])] : ids
+	const result = {
+		seq: null,
+		seqs: [],
+		id: null,
+		ids: [],
+		...filteredData,
+		keys: identifiers
 	}
+
+	normalizeIdentifierPair(result, 'seq')
+	normalizeIdentifierPair(result, 'id')
+
+	delete result.keys
+	return result
 }
 
-function getSeqsAndIds (body) {
-	const seqs = Array.isArray(body.seqs) ? [...body.seqs] : []
-	const ids = Array.isArray(body.ids) ? [...body.ids] : []
-	return [seqs, ids]
+/* ---------------- helpers ---------------- */
+
+function filterBuiltinIdentifiers(data) {
+	return Object.fromEntries(
+		Object.entries(data)
+			.filter(([key]) => MODEL_BUILTIN_IDENTIFIERS.includes(key))
+	)
+}
+
+function normalizeIdentifierPair(target, single) {
+	const plural = `${single}s`
+	const keys = target.keys
+
+	if (keys.includes(single)) {
+		resolveSingle(target, single, plural)
+		delete target[plural]
+		return
+	}
+
+	if (keys.includes(plural)) {
+		resolvePlural(target, single, plural)
+		delete target[single]
+		return
+	}
+
+	delete target[single]
+	delete target[plural]
+}
+
+/* ---------------- resolution logic ---------------- */
+
+function resolveSingle(target, single, plural) {
+	if (target[single] != null) {
+		if (Array.isArray(target[single])) {
+			target[single] = target[single][0]
+		}
+		return
+	}
+
+	if (isArrayWithContent(target[plural])) {
+		target[single] = target[plural][0]
+		return
+	}
+
+	if (isScalar(target[plural])) {
+		target[single] = target[plural]
+		return
+	}
+
+	delete target[single]
+}
+
+function resolvePlural(target, single, plural) {
+	if (isArrayWithContent(target[plural])) return
+
+	if (isArrayWithContent(target[single])) {
+		target[plural] = target[single]
+		return
+	}
+
+	if (isScalar(target[single])) {
+		target[plural] = [target[single]]
+		return
+	}
+
+	delete target[plural]
+}
+
+/* ---------------- guards ---------------- */
+
+function isArrayWithContent(value) {
+	return Array.isArray(value) && value.length > 0
+}
+
+function isScalar(value) {
+	return typeof value === 'number' || typeof value === 'string'
 }

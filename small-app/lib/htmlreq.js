@@ -49,6 +49,10 @@ export default class HtmlRequest extends ServerRequest {
     }
   }
 
+	_handle () {
+		this.res.end('HTML')
+	}
+
   send403 () {
     this.res.writeHead(403, { 'Content-Type': 'text/html' })
     this.res.end('403 Forbidden')

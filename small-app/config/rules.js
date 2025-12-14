@@ -1,61 +1,27 @@
 export const API_RULES = {
 	create: {
-		one: {
-			ID: null,
-			DATA: 'all'
-		},
-		many: {
-			ID: null,
-			DATA: 'all',
-			_rules: {
-				TYPE: 'array'
-			}
-		},
-		all: {
-			ID: null,
-			DATA: null,
-			_rules: {
-				FAIL: {
-					code: 401,
-					message: 'Only God can create all.'
-				}
-			}
-		},
-		_rules: {
-			ALLOWED_METHODS: ['POST']
-		}
+		ALLOWED_METHODS: ['POST'],
+		ID: null,
+		DATA: 'model',
+		FAIL: {	all: {
+			code: 401,
+			message: 'Only God can create all.'
+		}}
 	},
 	read: {
-		one: {},
-		many: {},
-		all: {},
-		_rules: {
-			ALLOWED_METHODS: ['GET']
-		}
+		ALLOWED_METHODS: ['GET'],
+		ID: 'seq/id',
+		DATA: 'all'
 	},
 	update: {
-		one: {},
-		many: {},
-		all: {},
-		_rules: {
-			ALLOWED_METHODS: ['PATCH']
-		}
+		ALLOWED_METHODS: ['PATCH'],
+		ID: 'seq',
+		DATA: 'force',
+		ELSE: 'model'
 	},
 	delete: {
-		one: {
-			ID: 'seq',
-			DATA: null
-		},
-		many: {
-			ID: 'seqs',
-			DATA: 'model'
-		},
-		all: {
-			ID: null,
-			DATA: null
-		},
-		_rules: {
-			ALLOWED_METHODS: ['DELETE']
-		}
+		ALLOWED_METHODS: ['DELETE'],
+		ID: 'seq',
+		DATA: null
 	}
 }

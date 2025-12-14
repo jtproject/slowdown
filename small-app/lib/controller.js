@@ -1,5 +1,6 @@
 import { BLANK_MODEL } from "../config/objects.js"
-import { valueError, queryError } from "../utils/error.js"
+import { MODEL_BUILTIN_IDENTIFIERS } from "../config/options.js"
+import { valueError, queryError, unknownError } from "../utils/error.js"
 import dotenv from "dotenv"
 
 dotenv.config()
@@ -59,34 +60,22 @@ export default class Controller {
 	 * -------------------------------------------------------- */
 
 	_filter(entries, filters) {
-		if (!filters || typeof filters !== "object") return entries
-
-		let result = [...entries]
-
-		// Identity filters
-		const ids = []
-		if (filters._id) ids.push(filters._id)
-		if (filters._ids) ids.push(...filters._ids)
-
-		const seqs = []
-		if (filters._seq !== undefined) seqs.push(filters._seq)
-		if (filters._seqs) seqs.push(...filters._seqs)
-
-		if (ids.length > 0) {
-			result = result.filter(e => ids.includes(e._id))
-		}
-
-		if (seqs.length > 0) {
-			result = result.filter(e => seqs.includes(e._seq))
-		}
-
-		// Field matching (non-identity keys)
-		Object.entries(filters).forEach(([key, val]) => {
-			if (key.startsWith("_")) return
-			result = result.filter(e => e[key] === val)
+		const filtered = []
+		MODEL_BUILTIN_IDENTIFIERS.forEach(value => {
+			value = '_' + value
+			const single = value.endsWith('s') ? value.slice(0, value.length - 1) : value
+			if (value in filters) {
+				if (!Array.isArray(filters[value])) {
+					filters[value] = [filters[value]]
+				}
+				filters[value].forEach(v => {
+					const result = entries.filter(entry => entry[single] === v)
+					if (result.length > 0) filtered.push(...result)
+				})
+				delete filters[value]
+			}
 		})
-
-		return result
+		return filtered
 	}
 
 	/* ----------------------------------------------------------
@@ -107,11 +96,15 @@ export default class Controller {
 	 *  ERROR HELPERS
 	 * -------------------------------------------------------- */
 
-	_err400(msg) {
+	_err400 (msg) {
 		return { code: 400, error: valueError(msg) }
 	}
 
-	_err404() {
+	_err500 () {
+		return { code: 500, error: unknownError() }
+	}
+
+	_err404 () {
 		return { code: 404, error: queryError("No matching records found.") }
 	}
 
@@ -127,30 +120,32 @@ export default class Controller {
 	 *  PUBLIC METHODS
 	 * -------------------------------------------------------- */
 
+	_control (group, callbacks) {
+		if (callbacks[group]) return callbacks[group]()
+		return this._err500()
+	}
+
 	create(modelName, group, data) {
 		const model = this._getModel(modelName)
-
-		if (group === "one") {
-			const entry = this._buildEntry(model, data)
-			this._insertEntry(model, entry)
-			this._write(model)
-			return this._ok(201, entry)
-		}
-
-		if (group === "many") {
-			if (!Array.isArray(data)) {
-				return this._err400("Data must be an array for 'many'.")
+		const groups = {
+			one: () => {
+				const entry = this._buildEntry(model, data)
+				this._insertEntry(model, entry)
+				this._write(model)
+				return this._ok(201, entry)
+			},
+			many: () => {
+				if (!Array.isArray(data)) data = Object.values(data)
+				const entries = data.map(d => {
+					const e = this._buildEntry(model, d)
+					this._insertEntry(model, e)
+					return e
+				})
+				this._write(model)
+				return this._ok(201, entries)
 			}
-			const entries = data.map(d => {
-				const e = this._buildEntry(model, d)
-				this._insertEntry(model, e)
-				return e
-			})
-			this._write(model)
-			return this._ok(201, entries)
 		}
-
-		return this._invalidGroup(group)
+		return this._control(group, groups)
 	}
 
 	read(modelName, group, filters) {
